@@ -3,7 +3,7 @@ import Modal from '@mui/material/Modal';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
 import Button from '@mui/material/Button';
-import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
+import CloseIcon from '@mui/icons-material/Close';
 
 
 const CountryModal = ({ country, onClose, open }) => {
@@ -34,7 +34,7 @@ const CountryModal = ({ country, onClose, open }) => {
                     onClick={onClose}
                     sx={{ position: 'absolute', top: 16, right: 16 }}
                 >
-                    <ArrowBackIosNewIcon />
+                    <CloseIcon />
                 </Button>
 
                 <Typography id="country-modal-title" variant="h6" component="h2">
