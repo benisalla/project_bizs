@@ -1,6 +1,6 @@
-import React, { useState } from 'react'; // Correct import statement
+import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { SiTailwindcss, SiReact, SiJavascript, SiFramer, SiCss3 } from 'react-icons/si';
+import { SiTailwindcss} from 'react-icons/si';
 import './SideBar.css';
 
 const SideBar = () => {
@@ -8,7 +8,6 @@ const SideBar = () => {
         <div className="bg-slate-900 text-slate-100 flex">
             <SideNav />
             <div className="w-full">
-                {/* Placeholder for other content */}
                 <div className="h-[35px] m-4 rounded border-2 border-dashed border-slate-600 bg-slate-800"></div>
                 <div className="h-[400px] m-4 rounded border-2 border-dashed border-slate-600 bg-slate-800"></div>
             </div>
@@ -19,17 +18,31 @@ const SideBar = () => {
 const SideNav = () => {
     const [selected, setSelected] = useState(0);
     const icons = [
-        { icon: <SiTailwindcss />, text: "Tailwind CSS" },
-        { icon: <SiReact />, text: "React" },
-        { icon: <SiJavascript />, text: "JavaScript" },
-        { icon: <SiFramer />, text: "Framer Motion" },
-        { icon: <SiCss3 />, text: "CSS3" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
+        { icon: <span><SiTailwindcss /></span>, text: "Tailwind CSS" },
     ];
 
     return (
-        <nav className="sidebar">
+        <nav className="sidebar" aria-label="Main Sidebar">
             {icons.map((item, index) => (
-                <NavItem key={index} selected={selected === index} onClick={() => setSelected(index)}>
+                <NavItem
+                    key={index}
+                    selected={selected === index}
+                    onClick={() => setSelected(index)}
+                    aria-label={item.text}
+                >
                     {item.icon}
                     <span className="nav-text">{item.text}</span>
                 </NavItem>
@@ -38,13 +51,16 @@ const SideNav = () => {
     );
 };
 
-const NavItem = ({ children, selected, onClick }) => {
+const NavItem = ({ children, selected, onClick, ...rest }) => {
     return (
         <motion.div
             className={`nav-item ${selected ? "selected" : ""}`}
             onClick={onClick}
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
+            role="button"
+            aria-pressed={selected ? "true" : "false"}
+            {...rest}
         >
             {children}
         </motion.div>

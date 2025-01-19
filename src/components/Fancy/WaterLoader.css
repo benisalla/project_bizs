@@ -1,0 +1,42 @@
+.spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    width: 200px;
+    height: 200px;
+  }
+  
+  .water-effect {
+    width: 100%;
+    height: 100%;
+    background: #00f;
+    opacity: 0.5;
+    border-radius: 50%;
+    animation: ripple 2s infinite;
+    position: absolute;
+    z-index: 1;
+  }
+  
+  @keyframes ripple {
+    0% {
+      transform: scale(0.5);
+      opacity: 0.5;
+    }
+    50% {
+      transform: scale(1.2);
+      opacity: 0.7;
+    }
+    100% {
+      transform: scale(0.5);
+      opacity: 0.5;
+    }
+  }
+  
+  .spinner-text {
+    color: #fff;
+    font-size: 20px;
+    z-index: 2;
+    position: absolute;
+  }
+  
