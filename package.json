@@ -21,6 +21,7 @@
     "react-svg-worldmap": "^2.0.0-alpha.16",
     "react-tippy": "^1.4.0",
     "react-tooltip": "^5.28.0",
+    "string-similarity": "^4.0.4",
     "web-vitals": "^4.2.4"
   },
   "scripts": {
