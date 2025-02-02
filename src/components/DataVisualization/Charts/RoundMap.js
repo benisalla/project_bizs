@@ -2,6 +2,8 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import './RoundMap.css';
 import LineChart from './LineChart';
+import { useLoader } from '../../APIs/Reducer';
+import { filterDataByCountry } from '../../APIs/DataUtils';
 
 const round_countries_path = process.env.PUBLIC_URL + "/assets/dataset/round-countries.geo.json";
 const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/world-water-data.csv";
@@ -24,7 +26,8 @@ const loadGeoJSON = async (filePath) => {
 
 const RoundMap = () => {
   const svgRef = useRef();
-  const infoPanelRef = useRef();
+  const tooltipRef = useRef();
+  const { showLoader, hideLoader } = useLoader();
   const [geojson, setGeojson] = useState(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
@@ -34,12 +37,57 @@ const RoundMap = () => {
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [waterData, setWaterData] = useState([]);
   const [nameMapping, setNameMapping] = useState({});
+  const [isLineChartOpen, setIsLineChartOpen] = useState(false);
+  const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
+  const [filteredDataByYear, setFilteredDataByYear] = useState([]);
+  const [filteredDataByCountryAndYear, setFilteredDataByCountryAndYear] = useState([]);
 
-  const mouseDownPosRef = useRef({ x: 0, y: 0 });
 
+  // ==============================================
+  //                 Helper functions
+  // ==============================================
   function unifyName(name) {
     return nameMapping[name] || name;
   }
+
+  function getSimpleStatsTooltip(feature, waterData) {
+    const { formal_en, UnifiedName } = feature.properties;
+    const countryWaterData = waterData.filter(record => record.UnifiedName === UnifiedName);
+
+    if (countryWaterData.length === 0) {
+      return `
+        <div style="font-family: Arial, sans-serif; font-size: 12px;">
+          <strong>${formal_en}</strong>
+          <br/><em>No water data available.</em>
+        </div>
+      `;
+    }
+
+    const totalValue = d3.sum(countryWaterData, d => d.Value);
+    const maxValue = d3.max(countryWaterData, d => d.Value);
+    const minValue = d3.min(countryWaterData, d => d.Value > 0 ? d.Value : Infinity);
+
+    return `
+      <div style="font-family: Arial, sans-serif; font-size: 12px; line-height: 1.3;">
+        <strong>${formal_en}</strong>
+        <div style="margin-top: 4px;">
+          <span>Total: ${totalValue.toFixed(2)}</span><br/>
+          <span>Max: ${maxValue.toFixed(2)}</span><br/>
+          <span>Min: ${minValue.toFixed(2)}</span>
+        </div>
+      </div>
+    `;
+  }
+
+
+  // ==============================================
+  //                 Use Effects
+  // ==============================================
+  // useEffect(() => {
+  //   if (selectedCountry) {
+  //     setIsLineChartOpen(true);
+  //   }
+  // }, [selectedCountry]);
 
   // load water data and map countries names
   useEffect(() => {
@@ -122,7 +170,7 @@ const RoundMap = () => {
       svg.append('path')
         .attr('class', 'graticule')
         .attr('d', path(graticule()))
-        .attr('fill', 'none')
+        .attr('fill', 'none') 
         .attr('stroke', '#bcb9ca')
         .attr('stroke-width', '0.5')
         .attr('vector-effect', 'non-scaling-stroke')
@@ -136,8 +184,11 @@ const RoundMap = () => {
         .style('stroke', '#060a0f')
         .attr('class', 'country')
         .on('mouseover', function (e, d) {
-          const { formal_en, economy } = d.properties;
-          d3.select(infoPanelRef.current).html(`<h1>${formal_en}</h1><hr><p>${economy}</p>`);
+          const tooltipHtml = getSimpleStatsTooltip(d, waterData);
+          d3.select(tooltipRef.current)
+            .style('visibility', 'visible')
+            .style('opacity', 1)
+            .html(tooltipHtml);
 
           d3.select(this)
             .transition()
@@ -150,16 +201,24 @@ const RoundMap = () => {
             .duration(300)
             .style('fill', '#997ffa');
         })
+        .on('mousemove', function (event) {
+          d3.select(tooltipRef.current)
+            .style('left', (event.pageX + 10) + 'px')
+            .style('top', (event.pageY + 10) + 'px');
+        })
         .on('mouseout', function () {
+          d3.select(tooltipRef.current)
+            .style('visibility', 'hidden')
+            .style('opacity', 0);
           d3.select(this)
             .transition()
             .duration(300)
             .style('fill', '#997ffa');
         })
         .on('mousedown', (e, d) => {
-          // console.log(d.properties.UnifiedName);
-          setSelectedCountry(d.properties.UnifiedName)
-        });
+          e.stopPropagation();
+          handleCountrySelection(d.properties.UnifiedName);
+        })
 
 
       let animationFrameId;
@@ -236,6 +295,19 @@ const RoundMap = () => {
     updateGlobe
   ]);
 
+
+  // ==============================================
+  //                 Render
+  // ==============================================
+  const handleCountrySelection = (countryName) => {
+    showLoader();
+    const filtered_data = filterDataByCountry(countryName, waterData);
+    setFilteredDataByCountry(filtered_data);
+    setSelectedCountry(countryName);
+    hideLoader();
+    setIsLineChartOpen(true);
+  };
+
   if (!geojson) {
     return null;
   }
@@ -243,14 +315,31 @@ const RoundMap = () => {
   return (
     <>
       <svg ref={svgRef}></svg>
-      <article ref={infoPanelRef} className="info"></article>
+      <div
+        ref={tooltipRef}
+        style={{
+          position: "absolute",
+          visibility: "hidden",
+          backgroundColor: "#fefefe",
+          border: "1px solid #d1d1d1",
+          borderRadius: "6px",
+          padding: "10px",
+          fontSize: "12px",
+          boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
+          pointerEvents: "none",
+          opacity: 0,
+          transition: "opacity 0.2s"
+        }}
+      />
 
-      {selectedCountry && (
-        <LineChart
-          countryName={selectedCountry}
-          waterData={waterData}
-        />
-      )}
+      <LineChart
+        countryName={selectedCountry}
+        filteredData={filteredDataByCountry}
+        isOpen={isLineChartOpen}
+        onClose={() => {
+          setIsLineChartOpen(false);
+        }}
+      />
     </>
   );
 };
