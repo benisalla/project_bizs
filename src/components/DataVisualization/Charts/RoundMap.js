@@ -1,12 +1,14 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, use } from 'react';
 import * as d3 from 'd3';
 import './RoundMap.css';
-import LineChart from './LineChart';
+import LineChart from './LineChart/LineChart';
 import { useLoader } from '../../APIs/Reducer';
 import { filterAndGroupDataByCountry, filterDataByCountry } from '../../APIs/DataUtils';
+import ChartSelector from '../Modals/ChartSelector';
+import AreaStats from './Statistics/AreaStats';
 
 const round_countries_path = process.env.PUBLIC_URL + "/assets/dataset/round-countries.geo.json";
-const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/world-water-data.csv";
+const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/water_use_rsc_dataset.csv"; // world-water-data.csv
 const map_countries_names_path = process.env.PUBLIC_URL + "/assets/dataset/map-country-names.json";
 
 const loadGeoJSON = async (filePath) => {
@@ -38,8 +40,14 @@ const RoundMap = () => {
   const [waterData, setWaterData] = useState([]);
   const [nameMapping, setNameMapping] = useState({});
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
   const [lineChartData, setLineChartData] = useState([]);
+  const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
+  const [selectedChart, setSelectedChart] = useState(null);
+  const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
+  const [areaStatsData, setAreaStatsData] = useState([]);
+  const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
+  const [isBarChartOpen, setIsBarChartOpen] = useState(false);
+  const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
   const [filteredDataByYear, setFilteredDataByYear] = useState([]);
   const [filteredDataByCountryAndYear, setFilteredDataByCountryAndYear] = useState([]);
 
@@ -291,19 +299,59 @@ const RoundMap = () => {
     updateGlobe
   ]);
 
+
   // ==============================================
-  //           Use Effects for Line Chart
+  //           Use Effects for Chart Selection
   // ==============================================
   useEffect(() => {
-    console.log("Selected country:", selectedCountry);
     if (selectedCountry && waterData.length > 0) {
+      setIsChartSelectorOpen(true);
+    }
+  }, [selectedCountry]);
+
+
+  // ==============================================
+  //           Use Effects for Chart Selection
+  // ==============================================
+  useEffect(() => {
+    if (selectedChart === 'LineChart') {
       showLoader();
       const filtered = filterAndGroupDataByCountry(selectedCountry, waterData);
       setLineChartData(filtered);
       setIsLineChartOpen(true);
       hideLoader();
+      setSelectedChart(null);
     }
-  }, [selectedCountry]);
+
+    if (selectedChart === 'ScatterChart') {
+      setIsScatterChartOpen(true);
+      setSelectedChart(null);
+    }
+
+    if (selectedChart === 'AreaStats') {
+      showLoader();
+      const area_stats_data = filterDataByCountry(selectedCountry, waterData);
+      setAreaStatsData(area_stats_data);
+      setIsAreaStatsOpen(true);
+      hideLoader();
+      setSelectedChart(null);
+    }
+
+    if (selectedChart === 'BarChart') {
+      setIsBarChartOpen(true);
+      setSelectedChart(null);
+    }
+  }, [selectedChart]);
+
+
+  // ==============================================
+  //          Handlers for Chart Selector
+  // ==============================================
+  const handleSelectChart = (chartType) => {
+    setSelectedChart(chartType);
+    setIsChartSelectorOpen(false);
+  };
+
 
   return (
     <>
@@ -325,13 +373,39 @@ const RoundMap = () => {
         }}
       />
 
+
+      {/* here we select the chart we want */}
+      <ChartSelector
+        isOpen={isChartSelectorOpen}
+        onClose={() => {
+          setIsChartSelectorOpen(false);
+          setSelectedCountry(null);
+        }}
+        onSelect={handleSelectChart}
+      />
+
+      {/* line chart */}
       <LineChart
         title={`Line Chart of ${selectedCountry}`}
         data={lineChartData}
         xField="Year"
         yField="TotalValue"
         isOpen={isLineChartOpen}
-        onClose={() => setIsLineChartOpen(false)}
+        onClose={() => {
+          setIsLineChartOpen(false);
+          setSelectedCountry(null);
+        }}
+      />
+
+      {/* Area Stats */}
+      <AreaStats
+        isOpen={isAreaStatsOpen}
+        onClose={() => {
+          setIsAreaStatsOpen(false);
+          setSelectedCountry(null);
+        }}
+        areaData={areaStatsData}
+        title={`${selectedCountry} Statistics`}
       />
 
     </>
