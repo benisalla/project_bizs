@@ -176,8 +176,6 @@ function FlatMap() {
   function drawChart(countryName) {
     // Filter water data by the unified name
     const filteredData = waterData.filter(row => row.Area === countryName);
-
-    // Group by year (if your data has multiple years) and sum
     const groupedData = d3.rollups(
       filteredData,
       v => d3.sum(v, d => d.Value),

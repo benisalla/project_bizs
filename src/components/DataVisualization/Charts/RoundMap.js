@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import './RoundMap.css';
 import LineChart from './LineChart';
 import { useLoader } from '../../APIs/Reducer';
-import { filterDataByCountry } from '../../APIs/DataUtils';
+import { filterAndGroupDataByCountry, filterDataByCountry } from '../../APIs/DataUtils';
 
 const round_countries_path = process.env.PUBLIC_URL + "/assets/dataset/round-countries.geo.json";
 const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/world-water-data.csv";
@@ -39,6 +39,7 @@ const RoundMap = () => {
   const [nameMapping, setNameMapping] = useState({});
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
   const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
+  const [lineChartData, setLineChartData] = useState([]);
   const [filteredDataByYear, setFilteredDataByYear] = useState([]);
   const [filteredDataByCountryAndYear, setFilteredDataByCountryAndYear] = useState([]);
 
@@ -83,11 +84,6 @@ const RoundMap = () => {
   // ==============================================
   //                 Use Effects
   // ==============================================
-  // useEffect(() => {
-  //   if (selectedCountry) {
-  //     setIsLineChartOpen(true);
-  //   }
-  // }, [selectedCountry]);
 
   // load water data and map countries names
   useEffect(() => {
@@ -170,7 +166,7 @@ const RoundMap = () => {
       svg.append('path')
         .attr('class', 'graticule')
         .attr('d', path(graticule()))
-        .attr('fill', 'none') 
+        .attr('fill', 'none')
         .attr('stroke', '#bcb9ca')
         .attr('stroke-width', '0.5')
         .attr('vector-effect', 'non-scaling-stroke')
@@ -217,7 +213,7 @@ const RoundMap = () => {
         })
         .on('mousedown', (e, d) => {
           e.stopPropagation();
-          handleCountrySelection(d.properties.UnifiedName);
+          setSelectedCountry(d.properties.UnifiedName);
         })
 
 
@@ -295,22 +291,19 @@ const RoundMap = () => {
     updateGlobe
   ]);
 
-
   // ==============================================
-  //                 Render
+  //           Use Effects for Line Chart
   // ==============================================
-  const handleCountrySelection = (countryName) => {
-    showLoader();
-    const filtered_data = filterDataByCountry(countryName, waterData);
-    setFilteredDataByCountry(filtered_data);
-    setSelectedCountry(countryName);
-    hideLoader();
-    setIsLineChartOpen(true);
-  };
-
-  if (!geojson) {
-    return null;
-  }
+  useEffect(() => {
+    console.log("Selected country:", selectedCountry);
+    if (selectedCountry && waterData.length > 0) {
+      showLoader();
+      const filtered = filterAndGroupDataByCountry(selectedCountry, waterData);
+      setLineChartData(filtered);
+      setIsLineChartOpen(true);
+      hideLoader();
+    }
+  }, [selectedCountry]);
 
   return (
     <>
@@ -333,13 +326,14 @@ const RoundMap = () => {
       />
 
       <LineChart
-        countryName={selectedCountry}
-        filteredData={filteredDataByCountry}
+        title={`Line Chart of ${selectedCountry}`}
+        data={lineChartData}
+        xField="Year"
+        yField="TotalValue"
         isOpen={isLineChartOpen}
-        onClose={() => {
-          setIsLineChartOpen(false);
-        }}
+        onClose={() => setIsLineChartOpen(false)}
       />
+
     </>
   );
 };

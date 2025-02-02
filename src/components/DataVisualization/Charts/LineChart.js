@@ -1,579 +1,134 @@
-// import React, { useRef, useEffect } from "react";
-// import * as d3 from "d3";
-// import Modal from "react-modal";
-// import { useLoader } from "../../APIs/Reducer";
-
-// Modal.setAppElement("#root");
-
-// const LineChart = ({ countryName, filteredData, isOpen, onClose }) => {
-//     const svgRef = useRef(null);
-//     const { showLoader, hideLoader } = useLoader();
-
-//     useEffect(() => {
-//         showLoader();
-//         if (!countryName || !filteredData || filteredData.length === 0) return;
-
-//         console.log("--------------------");
-//         console.log("countryName", countryName);
-//         console.log("filteredData", filteredData);
-//         console.log("--------------------");
-
-//         const groupedData = d3.rollups(
-//             filteredData,
-//             v => d3.sum(v, d => d.Value),
-//             d => d.Year
-//         )
-//             .map(([Year, TotalValue]) => ({ Year, TotalValue }))
-//             .sort((a, b) => a.Year - b.Year);
-
-//         const margin = { top: 40, right: 30, bottom: 50, left: 50 };
-//         const chartW = 600 - margin.left - margin.right;
-//         const chartH = 300 - margin.top - margin.bottom;
-
-//         d3.select(svgRef.current).selectAll("*").remove();
-
-//         const svg = d3
-//             .select(svgRef.current)
-//             .attr("width", chartW + margin.left + margin.right)
-//             .attr("height", chartH + margin.top + margin.bottom)
-//             .append("g")
-//             .attr("transform", `translate(${margin.left},${margin.top})`);
-
-//         const years = groupedData.map(d => d.Year);
-//         const xScale = d3.scaleBand()
-//             .domain(years)
-//             .range([0, chartW])
-//             .padding(0.2);
-
-//         const yMax = d3.max(groupedData, d => d.TotalValue) || 0;
-//         const yScale = d3.scaleLinear()
-//             .domain([0, yMax])
-//             .nice()
-//             .range([chartH, 0]);
-
-//         svg.append("g")
-//             .attr("transform", `translate(0,${chartH})`)
-//             .call(d3.axisBottom(xScale).tickValues(xScale.domain().filter((_, i) => i % 5 === 0)))
-//             .selectAll("text")
-//             .attr("transform", "rotate(-45)")
-//             .style("text-anchor", "end");
-
-//         svg.append("g").call(d3.axisLeft(yScale));
-
-//         const line = d3.line()
-//             .x(d => xScale(d.Year) + xScale.bandwidth() / 2)
-//             .y(d => yScale(d.TotalValue));
-
-//         svg.append("path")
-//             .datum(groupedData)
-//             .attr("fill", "none")
-//             .attr("stroke", "orange")
-//             .attr("stroke-width", 2)
-//             .attr("d", line);
-
-//         svg.append("text")
-//             .attr("x", chartW / 2)
-//             .attr("y", -10)
-//             .attr("text-anchor", "middle")
-//             .style("font-size", "16px")
-//             .text(`Annual sum of water values for ${countryName}`);
-
-//         hideLoader();
-//     }, [countryName, filteredData]);
-
-//     return (
-//         <Modal
-//             isOpen={isOpen}
-//             onRequestClose={() => onClose()}
-//             contentLabel="Line Chart Modal"
-//             style={{
-//                 content: {
-//                     top: '50%',
-//                     left: '50%',
-//                     right: 'auto',
-//                     bottom: 'auto',
-//                     marginRight: '-50%',
-//                     transform: 'translate(-50%, -50%)',
-//                     background: '#fff',
-//                     border: '1px solid #ccc',
-//                     borderRadius: '8px',
-//                     boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-//                     padding: '20px',
-//                     width: '600px',
-//                     height: '350px'
-//                 },
-//                 overlay: {
-//                     backgroundColor: 'rgba(0, 0, 0, 0.75)'
-//                 }
-//             }}
-//         >
-//             <button
-//                 onClick={() => onClose()}
-//                 style={{
-//                     position: "absolute",
-//                     top: "10px",
-//                     right: "10px",
-//                     background: "#f44336",
-//                     color: "white",
-//                     border: "none",
-//                     borderRadius: "5px",
-//                     cursor: "pointer",
-//                     fontSize: "16px"
-//                 }}
-//             >
-//                 X
-//             </button>
-
-//             <svg ref={svgRef} />
-//         </Modal>
-//     );
-// }
-
-// export default LineChart;
-
-
-
-
-// import React, { useMemo, useRef, useEffect } from "react";
-// import * as d3 from "d3";
-// import Modal from "react-modal";
-// import { useLoader } from "../../APIs/Reducer";
-
-// Modal.setAppElement("#root");
-
-// const LineChart = ({ countryName, filteredData, isOpen, onClose }) => {
-//     const svgRef = useRef(null);
-//     const { showLoader, hideLoader } = useLoader();
-
-//     const groupedData = useMemo(() => {
-//         if (!countryName || !filteredData || filteredData.length === 0) return [];
-//         return d3.rollups(
-//             filteredData,
-//             v => d3.sum(v, d => d.Value),
-//             d => d.Year
-//         )
-//             .map(([Year, TotalValue]) => ({ Year, TotalValue }))
-//             .sort((a, b) => a.Year - b.Year);
-//     }, [countryName, filteredData]);
-
-//     useEffect(() => {
-//         console.log("----------[ start drawing line chart ]----------");
-//         showLoader();
-//         if (!countryName || !filteredData || filteredData.length === 0) return;
-//         // (If groupedData is empty, nothing to draw.)
-//         if (groupedData.length === 0) return;
-
-//         const margin = { top: 40, right: 30, bottom: 50, left: 50 };
-//         const chartW = 600 - margin.left - margin.right;
-//         const chartH = 300 - margin.top - margin.bottom;
-
-//         // Clear any previous content.
-//         d3.select(svgRef.current).selectAll("*").remove();
-
-//         // Create the SVG container.
-//         const svg = d3
-//             .select(svgRef.current)
-//             .attr("width", chartW + margin.left + margin.right)
-//             .attr("height", chartH + margin.top + margin.bottom)
-//             .append("g")
-//             .attr("transform", `translate(${margin.left},${margin.top})`);
-
-//         // Create scales.
-//         const years = groupedData.map(d => d.Year);
-//         const xScale = d3.scaleBand()
-//             .domain(years)
-//             .range([0, chartW])
-//             .padding(0.2);
-
-//         const yMax = d3.max(groupedData, d => d.TotalValue) || 0;
-//         const yScale = d3.scaleLinear()
-//             .domain([0, yMax])
-//             .nice()
-//             .range([chartH, 0]);
-
-//         // Draw the axes.
-//         svg.append("g")
-//             .attr("transform", `translate(0,${chartH})`)
-//             .call(
-//                 d3.axisBottom(xScale)
-//                     .tickValues(xScale.domain().filter((_, i) => i % 5 === 0))
-//             )
-//             .selectAll("text")
-//             .attr("transform", "rotate(-45)")
-//             .style("text-anchor", "end");
-
-//         svg.append("g")
-//             .call(d3.axisLeft(yScale));
-
-//         // Create the line generator.
-//         const line = d3.line()
-//             .x(d => xScale(d.Year) + xScale.bandwidth() / 2)
-//             .y(d => yScale(d.TotalValue));
-
-//         // Append the line path.
-//         svg.append("path")
-//             .datum(groupedData)
-//             .attr("fill", "none")
-//             .attr("stroke", "orange")
-//             .attr("stroke-width", 2)
-//             .attr("d", line);
-
-//         // Add a title.
-//         svg.append("text")
-//             .attr("x", chartW / 2)
-//             .attr("y", -10)
-//             .attr("text-anchor", "middle")
-//             .style("font-size", "16px")
-//             .text(`Annual sum of water values for ${countryName}`);
-
-//         console.log("----------[ finish drawing line chart ]----------");
-//         hideLoader();
-//     }, [countryName, filteredData]);
-
-//     return (
-//         <Modal
-//             isOpen={isOpen}
-//             onRequestClose={() => onClose()}
-//             contentLabel="Line Chart Modal"
-//             style={{
-//                 content: {
-//                     top: '50%',
-//                     left: '50%',
-//                     right: 'auto',
-//                     bottom: 'auto',
-//                     marginRight: '-50%',
-//                     transform: 'translate(-50%, -50%)',
-//                     background: '#fff',
-//                     border: '1px solid #ccc',
-//                     borderRadius: '8px',
-//                     boxShadow: '0 4px 8px rgba(0,0,0,0.2)',
-//                     padding: '20px',
-//                     width: '600px',
-//                     height: '350px' 
-//                 },
-//                 overlay: {
-//                     backgroundColor: 'rgba(0, 0, 0, 0.75)'
-//                 }
-//             }}
-//         >
-//             <button
-//                 onClick={() => onClose()}
-//                 style={{
-//                     position: "absolute",
-//                     top: "10px",
-//                     right: "10px",
-//                     background: "#f44336",
-//                     color: "white",
-//                     border: "none",
-//                     borderRadius: "5px",
-//                     cursor: "pointer",
-//                     fontSize: "16px"
-//                 }}
-//             >
-//                 X
-//             </button>
-//             <svg ref={svgRef} />
-//         </Modal>
-//     );
-// };
-
-// export default LineChart;
-
-
-
-
-
-
-
-// import React, { useRef, useEffect, useMemo } from "react";
-// import * as d3 from "d3";
-// import Modal from "react-modal";
-// import { useLoader } from "../../APIs/Reducer";
-
-// Modal.setAppElement("#root");
-
-// const LineChart = ({ countryName, filteredData, isOpen, onClose }) => {
-//     const svgRef = useRef(null);
-
-//     const groupedData = useMemo(() => {
-//         if (!countryName || !filteredData || filteredData.length === 0) return [];
-//         return d3
-//             .rollups(
-//                 filteredData,
-//                 (v) => d3.sum(v, (d) => d.Value),
-//                 (d) => d.Year
-//             )
-//             .map(([Year, TotalValue]) => ({ Year, TotalValue }))
-//             .sort((a, b) => a.Year - b.Year);
-//     }, [countryName, filteredData]);
-
-//     useEffect(() => {
-//         if (!countryName || !filteredData || filteredData.length === 0) return;
-//         if (groupedData.length === 0) return;
-
-//         const margin = { top: 40, right: 30, bottom: 50, left: 50 };
-//         const chartW = 600 - margin.left - margin.right;
-//         const chartH = 300 - margin.top - margin.bottom;
-
-//         // Remove any previous content.
-//         d3.select(svgRef.current).selectAll("*").remove();
-
-//         // Create the SVG container.
-//         const svg = d3
-//             .select(svgRef.current)
-//             .attr("width", chartW + margin.left + margin.right)
-//             .attr("height", chartH + margin.top + margin.bottom)
-//             .append("g")
-//             .attr("transform", `translate(${margin.left},${margin.top})`);
-
-//         // Set up scales.
-//         const years = groupedData.map((d) => d.Year);
-//         const xScale = d3.scaleBand().domain(years).range([0, chartW]).padding(0.2);
-
-//         const yMax = d3.max(groupedData, (d) => d.TotalValue) || 0;
-//         const yScale = d3.scaleLinear().domain([0, yMax]).nice().range([chartH, 0]);
-
-//         // Draw axes.
-//         svg
-//             .append("g")
-//             .attr("transform", `translate(0,${chartH})`)
-//             .call(
-//                 d3.axisBottom(xScale).tickValues(
-//                     xScale.domain().filter((_, i) => i % 5 === 0)
-//                 )
-//             )
-//             .selectAll("text")
-//             .attr("transform", "rotate(-45)")
-//             .style("text-anchor", "end");
-
-//         svg.append("g").call(d3.axisLeft(yScale));
-
-//         // Create the line generator.
-//         const line = d3
-//             .line()
-//             .x((d) => xScale(d.Year) + xScale.bandwidth() / 2)
-//             .y((d) => yScale(d.TotalValue));
-
-//         // Append the line path.
-//         svg
-//             .append("path")
-//             .datum(groupedData)
-//             .attr("fill", "none")
-//             .attr("stroke", "orange")
-//             .attr("stroke-width", 2)
-//             .attr("d", line);
-
-//         // Add a title.
-//         svg
-//             .append("text")
-//             .attr("x", chartW / 2)
-//             .attr("y", -10)
-//             .attr("text-anchor", "middle")
-//             .style("font-size", "16px")
-//             .text(`Annual sum of water values for ${countryName}`);
-
-//         console.log("SVG Element:", svgRef.current);
-//     }, [isOpen, countryName, filteredData]);
-
-//     return (
-//         <Modal
-//             isOpen={isOpen}
-//             onRequestClose={() => onClose()}
-//             contentLabel="Line Chart Modal"
-//             style={{
-//                 content: {
-//                     top: "50%",
-//                     left: "50%",
-//                     right: "auto",
-//                     bottom: "auto",
-//                     marginRight: "-50%",
-//                     transform: "translate(-50%, -50%)",
-//                     background: "#fff",
-//                     border: "1px solid #ccc",
-//                     borderRadius: "8px",
-//                     boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-//                     padding: "20px",
-//                     width: "600px",
-//                     height: "350px",
-//                 },
-//                 overlay: {
-//                     backgroundColor: "rgba(0, 0, 0, 0.75)",
-//                 },
-//             }}
-//         >
-//             <button
-//                 onClick={() => onClose()}
-//                 style={{
-//                     position: "absolute",
-//                     top: "10px",
-//                     right: "10px",
-//                     background: "#f44336",
-//                     color: "white",
-//                     border: "none",
-//                     borderRadius: "5px",
-//                     cursor: "pointer",
-//                     fontSize: "16px",
-//                 }}
-//             >
-//                 X
-//             </button>
-
-//             <svg ref={svgRef} />
-//         </Modal>
-//     );
-// };
-
-// export default LineChart;
-
-
-
-
-
-import React, { useRef, useEffect, useMemo } from "react";
+import React, { useRef, useEffect, useCallback } from "react";
 import * as d3 from "d3";
 import Modal from "react-modal";
-import { useLoader } from "../../APIs/Reducer";
+import "./LineChart.css";
 
-Modal.setAppElement("#root");
+Modal.setAppElement('#root');
 
-const LineChart = ({ countryName, filteredData, isOpen, onClose }) => {
-  const svgRef = useRef(null);
-  const { showLoader, hideLoader } = useLoader();
+const LineChart = ({ data, xField, yField, title, isOpen, onClose }) => {
+    const svgRef = useRef(null);
 
-  // Compute the grouped data only when needed.
-  const groupedData = useMemo(() => {
-    if (!countryName || !filteredData || filteredData.length === 0) return [];
-    return d3
-      .rollups(
-        filteredData,
-        (v) => d3.sum(v, (d) => d.Value),
-        (d) => d.Year
-      )
-      .map(([Year, TotalValue]) => ({ Year, TotalValue }))
-      .sort((a, b) => a.Year - b.Year);
-  }, [countryName, filteredData]);
+    const drawChart = useCallback(() => {
+        if (!svgRef.current) return;
 
-  useEffect(() => {
-    // Run only if the modal is open.
-    if (!isOpen) return;
+        const margin = { top: 40, right: 30, bottom: 50, left: 50 };
+        const chartWidth = 600 - margin.left - margin.right;
+        const chartHeight = 300 - margin.top - margin.bottom;
 
-    // Ensure we have data to draw the chart.
-    if (!countryName || !filteredData || filteredData.length === 0) return;
-    if (groupedData.length === 0) return;
+        // Clear any previous content.
+        d3.select(svgRef.current).selectAll("*").remove();
 
-    // Optionally show a loader if you're using one.
-    showLoader();
+        // Create an SVG container.
+        const svg = d3
+            .select(svgRef.current)
+            .attr("width", chartWidth + margin.left + margin.right)
+            .attr("height", chartHeight + margin.top + margin.bottom)
+            .append("g")
+            .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    const margin = { top: 40, right: 30, bottom: 50, left: 50 };
-    const chartW = 600 - margin.left - margin.right;
-    const chartH = 300 - margin.top - margin.bottom;
+        // Create the x-scale.
+        const xDomain = data.map(d => d[xField]);
+        const xScale = d3
+            .scaleBand()
+            .domain(xDomain)
+            .range([0, chartWidth])
+            .padding(0.2);
 
-    // Clear any previous content from the SVG.
-    d3.select(svgRef.current).selectAll("*").remove();
+        // Create the y-scale.
+        const yMax = d3.max(data, d => +d[yField]) || 0;
+        const yScale = d3
+            .scaleLinear()
+            .domain([0, yMax])
+            .nice()
+            .range([chartHeight, 0]);
 
-    // Create the SVG container.
-    const svg = d3
-      .select(svgRef.current)
-      .attr("width", chartW + margin.left + margin.right)
-      .attr("height", chartH + margin.top + margin.bottom)
-      .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
+        // Add the x-axis.
+        const xAxis = d3.axisBottom(xScale)
+            .tickValues(
+                xScale.domain().filter((d, i) => i % Math.ceil(xDomain.length / 10) === 0)
+            );
+        svg
+            .append("g")
+            .attr("transform", `translate(0,${chartHeight})`)
+            .call(xAxis)
+            .selectAll("text")
+            .attr("transform", "rotate(-45)")
+            .style("text-anchor", "end");
 
-    // Set up scales.
-    const years = groupedData.map((d) => d.Year);
-    const xScale = d3.scaleBand().domain(years).range([0, chartW]).padding(0.2);
-    const yMax = d3.max(groupedData, (d) => d.TotalValue) || 0;
-    const yScale = d3.scaleLinear().domain([0, yMax]).nice().range([chartH, 0]);
+        // Add the y-axis.
+        svg.append("g").call(d3.axisLeft(yScale));
 
-    // Draw the axes.
-    svg
-      .append("g")
-      .attr("transform", `translate(0,${chartH})`)
-      .call(
-        d3
-          .axisBottom(xScale)
-          .tickValues(xScale.domain().filter((_, i) => i % 5 === 0))
-      )
-      .selectAll("text")
-      .attr("transform", "rotate(-45)")
-      .style("text-anchor", "end");
+        // Define the line generator.
+        const line = d3
+            .line()
+            .x(d => xScale(d[xField]) + xScale.bandwidth() / 2)
+            .y(d => yScale(+d[yField]));
 
-    svg.append("g").call(d3.axisLeft(yScale));
+        // Append the line path.
+        svg.append("path")
+            .datum(data)
+            .attr("fill", "none")
+            .attr("stroke", "orange")
+            .attr("stroke-width", 2)
+            .attr("d", line);
 
-    // Create the line generator.
-    const line = d3
-      .line()
-      .x((d) => xScale(d.Year) + xScale.bandwidth() / 2)
-      .y((d) => yScale(d.TotalValue));
+        // Add a title.
+        svg.append("text")
+            .attr("x", chartWidth / 2)
+            .attr("y", -10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "16px")
+            .text(title);
+    }, [data, xField, yField, title]);
 
-    // Append the line path.
-    svg
-      .append("path")
-      .datum(groupedData)
-      .attr("fill", "none")
-      .attr("stroke", "orange")
-      .attr("stroke-width", 2)
-      .attr("d", line);
+    const afterOpenModal = () => {
+        drawChart();
+    };
 
-    // Add a title.
-    svg
-      .append("text")
-      .attr("x", chartW / 2)
-      .attr("y", -10)
-      .attr("text-anchor", "middle")
-      .style("font-size", "16px")
-      .text(`Annual sum of water values for ${countryName}`);
+    useEffect(() => {
+        if (isOpen) {
+            drawChart();
+        }
+    }, [isOpen, drawChart]);
 
-    console.log("SVG Element:", svgRef.current);
-
-    hideLoader();
-  }, [isOpen, countryName, filteredData, groupedData]);
-
-  return (
-    <Modal
-      isOpen={isOpen}
-      onRequestClose={onClose}
-      contentLabel="Line Chart Modal"
-      style={{
-        content: {
-          top: "50%",
-          left: "50%",
-          right: "auto",
-          bottom: "auto",
-          marginRight: "-50%",
-          transform: "translate(-50%, -50%)",
-          background: "#fff",
-          border: "1px solid #ccc",
-          borderRadius: "8px",
-          boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-          padding: "20px",
-          width: "600px",
-          height: "350px",
-        },
-        overlay: {
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-        },
-      }}
-    >
-      <button
-        onClick={onClose}
-        style={{
-          position: "absolute",
-          top: "10px",
-          right: "10px",
-          background: "#f44336",
-          color: "white",
-          border: "none",
-          borderRadius: "5px",
-          cursor: "pointer",
-          fontSize: "16px",
-        }}
-      >
-        X
-      </button>
-      <svg ref={svgRef} />
-    </Modal>
-  );
+    return (
+        <Modal
+            isOpen={isOpen}
+            onAfterOpen={afterOpenModal}
+            onRequestClose={onClose}
+            contentLabel="Line Chart Modal"
+            style={{
+                content: {
+                    top: "50%",
+                    left: "50%",
+                    marginRight: "-50%",
+                    transform: "translate(-50%, -50%)",
+                    background: "#fff",
+                    border: "1px solid #ccc",
+                    borderRadius: "10px",
+                    boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
+                    padding: "20px",
+                    width: "600px",
+                    height: "350px",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                    overflow: "hidden",
+                },
+                overlay: {
+                    backgroundColor: "rgba(0, 0, 0, 0.75)",
+                    display: "flex",
+                    justifyContent: "center",
+                    alignItems: "center",
+                },
+            }}
+        >
+            <button onClick={onClose} className="close-button">
+                &times;
+            </button>
+            <svg ref={svgRef} className="linechart-svg"></svg>
+        </Modal>
+    );
 };
 
 export default LineChart;
