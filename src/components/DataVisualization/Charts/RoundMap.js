@@ -315,11 +315,9 @@ const RoundMap = () => {
   // ==============================================
   useEffect(() => {
     if (selectedChart === 'LineChart') {
-      showLoader();
-      const filtered = filterAndGroupDataByCountry(selectedCountry, waterData);
-      setLineChartData(filtered);
+      const lineData = filterDataByCountry(selectedCountry, waterData);
+      setLineChartData(lineData);
       setIsLineChartOpen(true);
-      hideLoader();
       setSelectedChart(null);
     }
 
@@ -329,11 +327,9 @@ const RoundMap = () => {
     }
 
     if (selectedChart === 'AreaStats') {
-      showLoader();
       const area_stats_data = filterDataByCountry(selectedCountry, waterData);
       setAreaStatsData(area_stats_data);
       setIsAreaStatsOpen(true);
-      hideLoader();
       setSelectedChart(null);
     }
 
@@ -387,7 +383,7 @@ const RoundMap = () => {
       {/* line chart */}
       <LineChart
         title={`Line Chart of ${selectedCountry}`}
-        data={lineChartData}
+        lineData={lineChartData}
         xField="Year"
         yField="TotalValue"
         isOpen={isLineChartOpen}

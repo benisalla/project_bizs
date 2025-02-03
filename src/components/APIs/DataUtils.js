@@ -30,28 +30,16 @@ const filterDataByCountryAndYear = (countryName, year, waterData) => {
   return filteredData;
 };
 
-const filterAndGroupDataByCountry = (countryName, data) => {
-  const subset = data.filter(item => item.UnifiedName === countryName);
-  const grouped = d3.rollup(
-    subset,
-    arr => d3.sum(arr, e => e.Value),
-    e => e.Year
-  );
-  const result = Array.from(grouped, ([Year, TotalValue]) => ({ Year, TotalValue }));
-  result.sort((a, b) => a.Year - b.Year);
-  return result;
+const groupDataByYear = (data) => {
+  const groupedData = d3.rollups(
+    data,
+    v => d3.sum(v, d => parseFloat(d.Value)),
+    d => d.Year
+  )
+    .map(([Year, TotalValue]) => ({ Year, TotalValue }))
+    .sort((a, b) => a.Year - b.Year);
+  return groupedData;
 };
-
-// function computeNumericStats(data) {
-//   if (data.length === 0) return null;
-//   const values = data.map(row => parseFloat(row.Value));
-//   const total = values.reduce((acc, val) => acc + val, 0);
-//   const average = (total / values.length).toFixed(2);
-//   const min = Math.min(...values);
-//   const max = Math.max(...values);
-//   return { count: data.length, average, min, max };
-// }
-
 
 function computeNumericStats(data) {
   if (!data || data.length === 0) {
@@ -67,14 +55,14 @@ function computeNumericStats(data) {
 
   // Basic numeric stats
   const total = values.reduce((acc, val) => acc + val, 0);
-  const average = total / values.length;  // keep as Number, can format later
+  const average = total / values.length;  
   const min = Math.min(...values);
   const max = Math.max(...values);
 
   // Group sums by "Variable"
   const sumsByVariable = {};
   data.forEach(row => {
-    const varName = row.Variable; // make sure this matches your data shape
+    const varName = row.Variable; 
     const val = parseFloat(row.Value);
     if (!isNaN(val)) {
       sumsByVariable[varName] = (sumsByVariable[varName] || 0) + val;
@@ -82,7 +70,6 @@ function computeNumericStats(data) {
   });
 
   // Convert sums to percentage of total
-  // e.g., for a pie chart [ { variable: "...", percentage: ... }, ... ]
   const variablePercentages = Object.entries(sumsByVariable).map(([variable, sum]) => {
     const percentage = (sum / total) * 100;
     return {
@@ -93,7 +80,7 @@ function computeNumericStats(data) {
 
   return {
     count: values.length,
-    average,  // numeric; use toFixed(2) or similar in the UI
+    average,  
     min,
     max,
     total,
@@ -106,7 +93,7 @@ export {
   filterDataByCountry,
   filterDataByYear,
   filterDataByCountryAndYear,
-  filterAndGroupDataByCountry,
+  groupDataByYear,
   computeNumericStats
 };
 

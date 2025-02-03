@@ -1,12 +1,15 @@
 .close-button {
     position: absolute;
-    top: 10px;
-    right: 10px;
+    top: 4px;
+    right: 4px;
     background: transparent;
-    border: none;
     font-size: 24px;
     color: #f44336;
     cursor: pointer;
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    border: 1px solid red;
 }
 
 .chart-grid {
@@ -18,17 +21,30 @@
     align-items: center;
 }
 
-.chart-button {
-    background: #007bff;
+.chart-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: #006a9f;
     color: #fff;
     border: none;
     border-radius: 10px;
-    font-size: 18px;
     padding: 20px;
     cursor: pointer;
     transition: background 0.3s ease;
+    text-align: center;
 }
 
-.chart-button:hover {
-    background: #0056b3;
+.chart-card:hover {
+    background: #0a4d96;
+}
+
+.chart-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 10px;
+}
+
+.chart-title {
+    font-size: 18px;
 }

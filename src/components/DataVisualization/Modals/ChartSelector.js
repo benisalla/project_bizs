@@ -44,19 +44,55 @@ const ChartSelector = ({ isOpen, onClose, onSelect }) => {
     >
       <button onClick={onClose} className="close-button">&times;</button>
       <div className="chart-grid">
-        <button className="chart-button" onClick={() => handleClick('LineChart')}>
-          Line Chart
+        <button
+          className="chart-card"
+          onClick={() => handleClick('LineChart')}
+        >
+          <img
+            src="/assets/images/line-chart-icon.png"
+            alt="Line Chart"
+            className="chart-icon"
+          />
+          <div className="chart-title">Line Chart</div>
         </button>
-        <button className="chart-button" onClick={() => handleClick('ScatterChart')}>
-          Scatter Chart
+
+        <button
+          className="chart-card"
+          onClick={() => handleClick('ScatterChart')}
+        >
+          <img
+            src="/assets/images/scatter-chart-icon.png"
+            alt="Scatter Chart"
+            className="chart-icon"
+          />
+          <div className="chart-title">Scatter Chart</div>
         </button>
-        <button className="chart-button" onClick={() => handleClick('AreaStats')}>
-          Area Statistics
+
+        <button
+          className="chart-card"
+          onClick={() => handleClick('AreaStats')}
+        >
+          <img
+            src="/assets/images/stats-icon.png"
+            alt="Area Statistics"
+            className="chart-icon"
+          />
+          <div className="chart-title">Area Statistics</div>
         </button>
-        <button className="chart-button" onClick={() => handleClick('BarChart')}>
-          Bar Chart
+
+        <button
+          className="chart-card"
+          onClick={() => handleClick('BarChart')}
+        >
+          <img
+            src="/assets/images/bar-chart-icon.png"
+            alt="Bar Chart"
+            className="chart-icon"
+          />
+          <div className="chart-title">Bar Chart</div>
         </button>
       </div>
+
     </Modal>
   );
 };
