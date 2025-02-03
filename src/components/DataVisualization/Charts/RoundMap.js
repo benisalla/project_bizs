@@ -3,7 +3,7 @@ import * as d3 from 'd3';
 import './RoundMap.css';
 import LineChart from './LineChart/LineChart';
 import { useLoader } from '../../APIs/Reducer';
-import { filterAndGroupDataByCountry, filterDataByCountry } from '../../APIs/DataUtils';
+import { filterDataByCountry } from '../../APIs/DataUtils';
 import ChartSelector from '../Modals/ChartSelector';
 import AreaStats from './Statistics/AreaStats';
 
@@ -29,7 +29,6 @@ const loadGeoJSON = async (filePath) => {
 const RoundMap = () => {
   const svgRef = useRef();
   const tooltipRef = useRef();
-  const { showLoader, hideLoader } = useLoader();
   const [geojson, setGeojson] = useState(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
@@ -42,8 +41,8 @@ const RoundMap = () => {
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
   const [lineChartData, setLineChartData] = useState([]);
   const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
-  const [selectedChart, setSelectedChart] = useState(null);
   const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
+  const [selectedChart, setSelectedChart] = useState(null);
   const [areaStatsData, setAreaStatsData] = useState([]);
   const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
   const [isBarChartOpen, setIsBarChartOpen] = useState(false);
@@ -56,7 +55,7 @@ const RoundMap = () => {
   //                 Helper functions
   // ==============================================
   function unifyName(name) {
-    return nameMapping[name] || name;
+    return nameMapping[name];
   }
 
   function getSimpleStatsTooltip(feature, waterData) {
@@ -222,6 +221,7 @@ const RoundMap = () => {
         .on('mousedown', (e, d) => {
           e.stopPropagation();
           setSelectedCountry(d.properties.UnifiedName);
+          console.log("Selected country:", d.properties.UnifiedName);
         })
 
 
@@ -384,8 +384,6 @@ const RoundMap = () => {
       <LineChart
         title={`Line Chart of ${selectedCountry}`}
         lineData={lineChartData}
-        xField="Year"
-        yField="TotalValue"
         isOpen={isLineChartOpen}
         onClose={() => {
           setIsLineChartOpen(false);

@@ -1,132 +1,16 @@
 .flatmap-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    background: linear-gradient(to bottom, #fdfbfb, #ebedee);
-    padding: 0;
-    margin: 0;
-    box-sizing: border-box;
-    font-family: sans-serif;
-}
-
-.flatmap-title {
-    margin-top: 1rem;
-    font-size: 1.5rem;
-    font-weight: 600;
-    text-align: center;
-}
-
-.flatmap-controls {
-    display: flex;
-    justify-content: center;
-    gap: 2rem;
-    margin: 1rem 0;
-    background: #ffffff;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    padding: 1rem;
-    border-radius: 8px;
-}
-
-.flatmap-controls .control-group {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-/* Range sliders */
-.flatmap-controls input[type="range"] {
-    -webkit-appearance: none;
-    width: 180px;
-    height: 8px;
-    background: #e4e4e4;
-    border-radius: 4px;
-    outline: none;
-    margin-top: 0.5rem;
-    transition: background 0.3s ease-in-out;
-}
-
-.flatmap-controls input[type="range"]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    appearance: none;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: #77c4d3;
-    cursor: pointer;
-    box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.flatmap-controls input[type="range"]::-webkit-slider-thumb:hover {
-    background: #5ca7bb;
-}
-
-.flatmap-controls input[type="range"]:focus {
-    background: #d0e7eb;
-}
-
-/* The map SVG itself */
-.flatmap-svg {
-    display: block;
-    margin: auto;
-    /* border: 1px solid #ccc; */
-    /* optional border for debugging */
-}
-
-/* Tooltip */
-.flatmap-tooltip {
-    position: absolute;
-    visibility: hidden;
-    background-color: #fefefe;
-    border: 1px solid #d1d1d1;
-    border-radius: 6px;
+    position: relative;
     padding: 10px;
-    font-size: 12px;
-    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease-in-out;
-    z-index: 9999;
+    font-family: 'Roboto', sans-serif;
+    min-height: 100vh;
 }
 
-/* Popup chart container */
-.flatmap-popup {
-    position: absolute;
-    visibility: hidden;
-    width: 600px;
-    height: 350px;
-    background: #ffffff;
-    border: 1px solid #ccc;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    padding: 20px;
-    z-index: 9999;
-    /* We'll animate the opacity if you want a fade-in. */
-    transition: opacity 0.3s ease;
-}
-
-/* Close button in the popup */
-.flatmap-popup button.close-button {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    background: #f44336;
-    color: #ffffff;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    font-size: 16px;
-    padding: 4px 8px;
-}
-
-.flatmap-popup button.close-button:hover {
-    background: #d13127;
-}
-
-.flatmap-stats {
-    max-width: 1200px;
+.flatmap-container svg {
+    display: block;
+    padding: 10px;
     margin: 20px auto;
-    padding: 20px;
-    background: #fff;
-    border-radius: 10px;
-    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+    max-width: 100%;
+    height: auto;
+    background-color: #fff;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }

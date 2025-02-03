@@ -18,12 +18,15 @@ function getPositionHtmlToolTip(d) {
 }
 
 
-const LineChart = ({ lineData, xField, yField, title, isOpen, onClose }) => {
+const LineChart = ({ lineData, title, isOpen, onClose }) => {
     const svgRef = useRef();
     const tooltipRef = useRef();
 
     const drawChart = useCallback(() => {
         if (!svgRef.current || !lineData) return;
+
+        console.log("Drawing line chart...");
+        console.log(lineData);
 
         // 1) Separate data by type
         const resourceData = lineData.filter(d => d.type === "resource");

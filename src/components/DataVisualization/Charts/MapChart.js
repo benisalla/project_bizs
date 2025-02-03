@@ -1,43 +1,47 @@
 import React, { useState } from 'react';
-import { WorldMap } from 'react-svg-worldmap';
-import CountryModal from './CountryModal';
+import FlatMap from './FlatMap';
+import RoundMap from './RoundMap';
+import './MapChart.css';
+import { FaGlobe, FaMap } from 'react-icons/fa';
+import { useLoader } from '../../APIs/Reducer';
 
 const MapChart = ({ data = [] }) => {
-    const [selectedCountry, setSelectedCountry] = useState(null);
-    const [modalOpen, setModalOpen] = useState(false);
+    const [flatMap, setFlatMap] = useState(true);
+    const { showLoader, hideLoader } = useLoader();
 
-    const handleCountryClick = (event) => {
-        const countryData = data.find(
-            (item) => item.country === event.countryCode
-        );
-        if (countryData) {
-            setSelectedCountry(countryData);
-            setModalOpen(true);
-        }
-    };
+    const handleSwitch = () => {
+        // Show the loading indicator
+        showLoader();
 
-    const handleCloseModal = () => {
-        setModalOpen(false);
+        // After 2 seconds, toggle the map and hide the loader
+        setTimeout(() => {
+            setFlatMap(prev => !prev);
+            hideLoader();
+        }, 2000);
     };
 
     return (
-        <div className="container m-auto">
-            <>
-                <WorldMap
-                    size="xxl"
-                    data={data}
-                    onClickFunction={handleCountryClick}
-                    color="blue"
-                    value-suffix=" units"
-                />
-                {selectedCountry && (
-                    <CountryModal
-                        country={selectedCountry}
-                        open={modalOpen}
-                        onClose={handleCloseModal}
+        <div className="map-chart-container">
+            <button
+                className="switch-btn"
+                onClick={handleSwitch}
+                aria-label={flatMap ? 'Switch to round map' : 'Switch to flat map'}
+            >
+                {flatMap ? (
+                    <img
+                        src="/assets/images/flat-map-icon.png"
+                        alt="flat map icon"
+                        className="chart-icon"
+                    />
+                ) : (
+                    <img
+                        src="/assets/images/earth-icon.png"
+                        alt="earth icon"
+                        className="chart-icon"
                     />
                 )}
-            </>
+            </button>
+            {flatMap ? <FlatMap/> : <RoundMap/>}
         </div>
     );
 };

@@ -11,12 +11,12 @@ const Home = () => {
             Explore global water consumption patterns, scarcity challenges, and innovative solutions for conservation.
           </p>
           <a 
-            href="https://www.unwater.org/" 
+            href="https://www.fao.org/aquastat/en/" 
             target="_blank" 
             rel="noopener noreferrer" 
             className="cta-button"
           >
-            Learn More
+            More About AQUASTAT
           </a>
         </div>
       </header>

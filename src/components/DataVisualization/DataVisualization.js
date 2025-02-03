@@ -2,8 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Papa from 'papaparse';
 import SideBar from '../SideBar/SideBar';
 import './DataVisualization.css';
-import RoundMap from './Charts/RoundMap';
-import FlatMap from './Charts/FlatMap';
+import MapChart from './Charts/MapChart';
 
 const worldWaterDataPath = `${process.env.PUBLIC_URL}/assets/dataset/world-water-data.csv`;
 const isoDataPath = `${process.env.PUBLIC_URL}/assets/dataset/iso.csv`;
@@ -48,9 +47,7 @@ const DataVisualization = () => {
     <div className="data-vis-page">
       <SideBar />
       <main className="page-content">
-        {/* <MapChart data={data} /> */}
-        <RoundMap />
-        {/* <FlatMap /> */}
+        <MapChart />
       </main>
     </div>
   );
