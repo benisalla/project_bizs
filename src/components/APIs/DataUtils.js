@@ -1,52 +1,99 @@
-import Papa from 'papaparse';
+import * as d3 from 'd3';
 
-// Function to fetch and parse CSV data
-export const fetchData = (path) => {
-  return fetch(path)
-    .then(response => response.text())
-    .then(csvData => new Promise((resolve, reject) => {
-      Papa.parse(csvData, {
-        header: true,
-        complete: results => resolve(results.data),
-        error: error => reject(error)
-      });
-    }));
+const filterDataByCountry = (countryName, waterData) => {
+  if (!countryName || !waterData || waterData.length === 0) {
+    return [];
+  }
+
+  const filteredData = waterData.filter(row => row.UnifiedName === countryName);
+
+  return filteredData;
 };
 
-// Calculate statistics such as average, min, max
-export const calculateStatistics = (data, key) => {
-  const filteredData = data.map(item => parseFloat(item[key])).filter(item => !isNaN(item));
-  const sum = filteredData.reduce((acc, value) => acc + value, 0);
-  const count = filteredData.length;
-  const average = sum / count;
-  const min = Math.min(...filteredData);
-  const max = Math.max(...filteredData);
+const filterDataByYear = (year, waterData) => {
+  if (!year || !waterData || waterData.length === 0) {
+    return [];
+  }
 
-  return { average, min, max, count };
+  const filteredData = waterData.filter(row => row.Year === year);
+
+  return filteredData;
 };
 
-// Group data by a specific key
-export const groupBy = (data, key) => {
-  return data.reduce((storage, item) => {
-    const group = item[key];
-    storage[group] = storage[group] || [];
-    storage[group].push(item);
-    return storage;
-  }, {});
+const filterDataByCountryAndYear = (countryName, year, waterData) => {
+  if (!countryName || !year || !waterData || waterData.length === 0) {
+    return [];
+  }
+
+  const filteredData = waterData.filter(row => row.UnifiedName === countryName && row.Year === year);
+
+  return filteredData;
 };
 
-// Calculate aggregated values per country or group
-export const aggregateDataByCountry = (data, countryKey = 'Area', valueKey = 'Value') => {
-  const groupedData = groupBy(data, countryKey);
-  return Object.keys(groupedData).map(country => {
-    const stats = calculateStatistics(groupedData[country], valueKey);
+const groupDataByYear = (data) => {
+  const groupedData = d3.rollups(
+    data,
+    v => d3.sum(v, d => parseFloat(d.Value)),
+    d => d.Year
+  )
+    .map(([Year, TotalValue]) => ({ Year, TotalValue }))
+    .sort((a, b) => a.Year - b.Year);
+  return groupedData;
+};
+
+function computeNumericStats(data) {
+  if (!data || data.length === 0) {
+    return null;
+  }
+
+  // Convert all "Value" fields to numbers
+  const values = data.map(row => parseFloat(row.Value)).filter(v => !isNaN(v));
+
+  if (values.length === 0) {
+    return null;
+  }
+
+  // Basic numeric stats
+  const total = values.reduce((acc, val) => acc + val, 0);
+  const average = total / values.length;  
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+
+  // Group sums by "Variable"
+  const sumsByVariable = {};
+  data.forEach(row => {
+    const varName = row.Variable; 
+    const val = parseFloat(row.Value);
+    if (!isNaN(val)) {
+      sumsByVariable[varName] = (sumsByVariable[varName] || 0) + val;
+    }
+  });
+
+  // Convert sums to percentage of total
+  const variablePercentages = Object.entries(sumsByVariable).map(([variable, sum]) => {
+    const percentage = (sum / total) * 100;
     return {
-      country,
-      averageValue: stats.average,
-      minValue: stats.min,
-      maxValue: stats.max,
-      count: stats.count
+      variable,
+      percentage,
     };
   });
+
+  return {
+    count: values.length,
+    average,  
+    min,
+    max,
+    total,
+    variablePercentages,
+  };
+}
+
+
+export {
+  filterDataByCountry,
+  filterDataByYear,
+  filterDataByCountryAndYear,
+  groupDataByYear,
+  computeNumericStats
 };
 

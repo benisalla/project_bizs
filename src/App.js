@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import NavBar from './components/NavBar/NavBar';
 import Home from './components/Home/Home';
@@ -8,6 +8,7 @@ import TestPage from './components/TestPage/TestPage';
 import './App.css';
 
 const App = () => {
+
   return (
     <Router>
       <div>

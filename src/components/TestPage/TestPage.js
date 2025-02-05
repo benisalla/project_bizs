@@ -1,6 +1,7 @@
 import React from 'react';
 import * as d3 from 'd3';
 import WaterButton from '../MicroComponents/WaterButton';
+import TreemapChart from './TreemapChart';
 
 const LinePlot = ({
     data,
@@ -26,13 +27,26 @@ const LinePlot = ({
 
 const TestPage = () => {
     const sampleData = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
-    
+
+    const data = {
+        keys: ['2019', '2020', '2021', '2022'],
+        group: {
+            name: 'root',
+            children: [
+                { name: 'Category C', values: [15, 25, 35, 45] },
+                { name: 'Category D', values: [10, 20, 30, 40] },
+                { name: 'Category E', values: [5, 15, 25, 35] },
+            ],
+        },
+    };
+
     return (
         <div>
             <WaterButton onClick={() => alert('Button clicked')}>Click me</WaterButton>
             <h1>Welcome to the Test Page</h1>
             <p>This is a simple test page for our project.</p>
             <LinePlot data={sampleData} />
+            <TreemapChart data={data} />
         </div>
     );
 };

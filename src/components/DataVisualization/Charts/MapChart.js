@@ -74,3 +74,4 @@ const MapChart = ({ data = [] }) => {
 };
 
 export default MapChart;
+
