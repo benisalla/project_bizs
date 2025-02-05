@@ -25,16 +25,21 @@ const LineChart = ({ lineData, title, isOpen, onClose }) => {
     const drawChart = useCallback(() => {
         if (!svgRef.current || !lineData) return;
 
-        console.log("Drawing line chart...");
-        console.log(lineData);
+        console.log("First Line LineData in LineChart:", lineData[0]);
 
         // 1) Separate data by type
         const resourceData = lineData.filter(d => d.type === "resource");
         const usageData = lineData.filter(d => d.type === "usage");
 
+        console.log("first resource data:", resourceData[0]);
+        console.log("first usage data:", usageData[0]);
+
         // 2) Group each subset by Year 
         const resourceByYear = groupDataByYear(resourceData);
         const usageByYear = groupDataByYear(usageData);
+
+        console.log("First Resource By Year:", resourceByYear[0]);
+        console.log("First Usage By Year:", usageByYear[0]);
 
         // 3) Set up the chart dimensions
         const margin = { top: 40, right: 50, bottom: 50, left: 50 };
