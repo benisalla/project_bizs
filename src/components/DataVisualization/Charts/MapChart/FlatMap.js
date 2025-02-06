@@ -11,7 +11,8 @@ function FlatMap({ flatGeoJson, waterData }) {
   const mapRef = useRef(null);
   const tooltipRef = useRef(null);
   const popupRef = useRef(null);
-
+  const baseScaleRef = useRef(null);
+  const [zoomScale, setZoomScale] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
   const [lineChartData, setLineChartData] = useState([]);
@@ -32,6 +33,18 @@ function FlatMap({ flatGeoJson, waterData }) {
   useEffect(() => {
     if (!flatGeoJson || waterData.length === 0) return;
 
+    // min and max values of waterQTbyYear
+    const totalValues = flatGeoJson.features.map(
+      (d) => d.properties.waterQTbyYear || 0
+    );
+    const minTotal = d3.min(totalValues);
+    const maxTotal = d3.max(totalValues);
+
+    // Create a color scale
+    const colorScale = d3.scaleLinear()
+      .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
+      .range(["red", "yellow", "blue"]);
+
     // Rollup the data by UnifiedName
     const rollup = d3.rollups(
       waterData,
@@ -45,14 +58,6 @@ function FlatMap({ flatGeoJson, waterData }) {
       valueByName[countryName] = totalValue;
     }
 
-    // Build a color scale
-    const allValues = Object.values(valueByName);
-    const maxVal = d3.max(allValues) || 0;
-    const colorScale = d3
-      .scaleLinear()
-      .domain([0, maxVal])
-      .range(["#e0f3f8", "#0868ac"]);
-
     // Select or create the SVG
     const svg = d3
       .select(mapRef.current)
@@ -64,6 +69,8 @@ function FlatMap({ flatGeoJson, waterData }) {
       .geoMercator()
       .scale(150)
       .translate([width / 2, height / 1.4]);
+
+    baseScaleRef.current = projection.scale();
 
     const path = d3.geoPath().projection(projection);
 
@@ -113,14 +120,7 @@ function FlatMap({ flatGeoJson, waterData }) {
       .transition()
       .duration(600)
       .ease(d3.easeCubicOut)
-      .attr("fill", d => {
-        const unifiedGeoName = d.properties.UnifiedName;
-        const val = valueByName[unifiedGeoName];
-        if (val === undefined || isNaN(val)) {
-          return "lightgray";
-        }
-        return colorScale(val);
-      });
+      .style('fill', d => colorScale(d.properties.waterQTbyYear))
 
     // Attach mouse & click listeners
     svg.selectAll(".country")
@@ -129,19 +129,66 @@ function FlatMap({ flatGeoJson, waterData }) {
       .on("mouseout", handleMouseOut)
       .on("click", handleClick);
 
+    // ***** Add zoom behavior here *****
+    const zoomBehavior = d3.zoom()
+      .filter(event => {
+        return (event.type === 'wheel' && event.ctrlKey) ||
+          (event.type === 'touchstart') ||
+          (event.type === 'touchmove') ||
+          (event.type === 'touchend');
+      })
+      .scaleExtent([0.2, 4])
+      .on('zoom', event => {
+        const newAbsoluteScale = baseScaleRef.current * event.transform.k;
+        if (Math.abs(newAbsoluteScale - projection.scale()) > 1e-5) {
+          svg.transition()
+            .duration(250)
+            .ease(d3.easeCubicOut)
+            .tween('zoom', () => {
+              const i = d3.interpolate(projection.scale(), newAbsoluteScale);
+              return t => {
+                projection.scale(i(t));
+                svg.selectAll('.country').attr('d', path);
+              };
+            });
+          setZoomScale(event.transform.k);
+        }
+      });
+
+    // Attach zoom behavior to the svg:
+    svg.call(zoomBehavior);
+
+
+    let lastX, lastY;
+    const dragBehavior = d3.drag()
+      .on("start", (event) => {
+        [lastX, lastY] = d3.pointer(event, svg.node());
+      })
+      .on("drag", (event) => {
+        const [currentX, currentY] = d3.pointer(event, svg.node());
+        const dx = currentX - lastX;
+        const dy = currentY - lastY;
+        const currentTranslate = projection.translate();
+        projection.translate([currentTranslate[0] + dx, currentTranslate[1] + dy]);
+        svg.selectAll(".country").attr("d", path);
+        lastX = currentX;
+        lastY = currentY;
+      });
+
+    svg.call(dragBehavior);
     // Draw or update a legend
-    drawLegend(svg, colorScale);
+    drawLegend(svg, colorScale, minTotal, maxTotal);
   }, [flatGeoJson, waterData]);
 
   // 4) Draw a Legend
-  function drawLegend(svg, colorScale) {
+  function drawLegend(svg, colorScale, minTotal, maxTotal) {
     // Remove any old legend
     svg.select(".legend").remove();
 
-    const legendWidth = 20;
-    const legendHeight = 200;
-    const legendX = width - 70;
-    const legendY = 50;
+    const legendWidth = 10;
+    const legendHeight = 250;
+    const legendX = width;
+    const legendY = 100;
 
     const legend = svg.append("g")
       .attr("class", "legend")
@@ -156,16 +203,15 @@ function FlatMap({ flatGeoJson, waterData }) {
       .attr("x1", "0%").attr("x2", "0%")
       .attr("y1", "100%").attr("y2", "0%");
 
-    const stops = d3.ticks(0, 1, 10);
-    stops.forEach(stop => {
+    // Use three stops: one for the min, one for the mid, and one for the max.
+    const stops = [minTotal, (minTotal + maxTotal) / 2, maxTotal];
+    const stopPercents = ["0%", "50%", "100%"];
+    stops.forEach((d, i) => {
       gradient.append("stop")
-        .attr("offset", stop)
-        .attr("stop-color", colorScale(
-          colorScale.invert
-            ? colorScale.invert(stop)
-            : stop * colorScale.domain()[1]
-        ));
+        .attr("offset", stopPercents[i])
+        .attr("stop-color", colorScale(d));
     });
+
 
     legend.append("rect")
       .attr("width", legendWidth)

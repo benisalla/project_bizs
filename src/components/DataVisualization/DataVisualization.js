@@ -6,7 +6,7 @@ import MapChart from './Charts/MapChart/MapChart';
 const DataVisualization = () => {
   return (
     <div className="data-vis-page">
-      <SideBar />
+      {/* <SideBar /> */}
       <main className="page-content">
         <MapChart />
       </main>

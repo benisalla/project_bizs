@@ -11,6 +11,7 @@ const round_countries_path = process.env.PUBLIC_URL + "/assets/dataset/round-cou
 const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/water_use_rsc_dataset.csv";
 const map_countries_names_path = process.env.PUBLIC_URL + "/assets/dataset/map-country-names.json";
 
+
 const loadGeoJSON = async (filePath) => {
     try {
         const response = await fetch(filePath);
@@ -25,6 +26,7 @@ const loadGeoJSON = async (filePath) => {
     }
 };
 
+
 const MapChart = () => {
     const [flatMap, setFlatMap] = useState(true);
     const { showLoader, hideLoader } = useLoader();
@@ -32,10 +34,12 @@ const MapChart = () => {
     const [flatGeoJson, setFlatGeoJson] = useState({});
     const [waterData, setWaterData] = useState([]);
     const [roundGeoJson, setRoundGeoJson] = useState({});
+    const [selectedYear, setSelectedYear] = useState(2000);
 
-    // ==============================================
-    // Load All data for differnet maps and charts
-    // ==============================================
+    const handleYearSelection = (e) => {
+        setSelectedYear(() => Number(e.target.value));
+    };
+
     useEffect(() => {
         fetch(map_countries_names_path)
             .then(response => response.json())
@@ -66,28 +70,48 @@ const MapChart = () => {
                 return;
             }
 
-            // Unify country names in round GeoJSON using state mapping
-            roundJson.features.forEach(feature => {
-                feature.properties.UnifiedName = nameMapping[feature.properties.name];
-            });
-            setRoundGeoJson(roundJson);
-
-            // Process flat GeoJSON similarly
-            const processedFlatGeoJson = topojson.feature(flatJson, flatJson.objects.countries);
-            processedFlatGeoJson.features.forEach(feature => {
-                feature.properties.UnifiedName = nameMapping[feature.properties.name];
-            });
-            setFlatGeoJson(processedFlatGeoJson);
-
             // Process water data
             waterCsv.forEach(d => {
                 d.UnifiedName = nameMapping[d.Area];
                 d.Year = +d.Year;
                 d.Value = +d.Value || 0;
             });
+
+            const countryWaterSum = {};
+            waterCsv.forEach(d => {
+                if (d.UnifiedName && d.Year === selectedYear) {
+                    if (!countryWaterSum[d.UnifiedName]) {
+                        countryWaterSum[d.UnifiedName] = 0;
+                    }
+                    countryWaterSum[d.UnifiedName] += d.Value;
+                }
+            });
+
+            // Unify country names in round GeoJSON using state mapping
+            const new_roundJson = roundJson;
+            new_roundJson.features.forEach(feature => {
+                feature.properties.UnifiedName = nameMapping[feature.properties.name];
+            });
+
+            // Process flat GeoJSON similarly
+            const new_flatJson = topojson.feature(flatJson, flatJson.objects.countries);
+            new_flatJson.features.forEach(feature => {
+                feature.properties.UnifiedName = nameMapping[feature.properties.name];
+            });
+
+            new_flatJson.features.forEach(feature => {
+                feature.properties.waterQTbyYear = countryWaterSum[feature.properties.UnifiedName] || 0;
+            });
+
+            new_roundJson.features.forEach(feature => {
+                feature.properties.waterQTbyYear = countryWaterSum[feature.properties.UnifiedName] || 0;
+            });
+
+            setRoundGeoJson(new_roundJson);
+            setFlatGeoJson(new_flatJson);
             setWaterData(waterCsv);
         });
-    }, [nameMapping]);
+    }, [nameMapping, selectedYear]);
 
 
     const handleSwitch = () => {
@@ -121,7 +145,22 @@ const MapChart = () => {
                 )}
             </button>
 
-            {/* checking that all the data is loaded */}
+            <div className="selected-year-container">
+                <h4>Selected Year: {selectedYear}</h4>
+                <div className="selected-year-sliders">
+                    <div className="slider">
+                        <input
+                            id="minYear"
+                            type="range"
+                            min="1967"
+                            max="2021"
+                            value={selectedYear}
+                            onChange={handleYearSelection}
+                        />
+                    </div>
+                </div>
+            </div>
+
             {roundGeoJson && flatGeoJson && waterData.length > 0 && (
                 flatMap ?
                     <FlatMap flatGeoJson={flatGeoJson} waterData={waterData} /> :

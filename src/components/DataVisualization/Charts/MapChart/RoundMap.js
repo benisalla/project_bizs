@@ -12,7 +12,6 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
   const svgRef = useRef();
   const tooltipRef = useRef();
   const baseScaleRef = useRef(null);
-
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
@@ -80,6 +79,15 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
 
   useEffect(() => {
     if (roundGeoJson) {
+      const totalValues = roundGeoJson.features.map(d => d.properties.waterQTbyYear || 0);
+      const minTotal = d3.min(totalValues);
+      const maxTotal = d3.max(totalValues);
+
+      // colorscale for the countries
+      const colorScale = d3.scaleLinear()
+        .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
+        .range(["red", "yellow", "blue"]);
+
       const svg = d3.select(svgRef.current);
       const width = dimensions.width;
       const height = dimensions.height;
@@ -114,7 +122,8 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
         .data(roundGeoJson.features)
         .enter().append('path')
         .attr('d', path)
-        .style('fill', '#997ffa')
+        // .style('fill', '#997ffa')
+        .style('fill', d => colorScale(d.properties.waterQTbyYear))
         .style('stroke', '#060a0f')
         .attr('class', 'country')
         .on('mouseover', function (e, d) {
@@ -282,23 +291,26 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
 
   return (
     <>
-      <svg ref={svgRef}></svg>
-      <div
-        ref={tooltipRef}
-        style={{
-          position: "absolute",
-          visibility: "hidden",
-          backgroundColor: "#fefefe",
-          border: "1px solid #d1d1d1",
-          borderRadius: "6px",
-          padding: "10px",
-          fontSize: "12px",
-          boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
-          pointerEvents: "none",
-          opacity: 0,
-          transition: "opacity 0.2s"
-        }}
-      />
+
+      <div className="roundmap-container">
+        <svg ref={svgRef}></svg>
+        <div
+          ref={tooltipRef}
+          style={{
+            position: "absolute",
+            visibility: "hidden",
+            backgroundColor: "#fefefe",
+            border: "1px solid #d1d1d1",
+            borderRadius: "6px",
+            padding: "10px",
+            fontSize: "12px",
+            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
+            pointerEvents: "none",
+            opacity: 0,
+            transition: "opacity 0.2s"
+          }}
+        />
+      </div>
 
 
       {/* here we select the chart we want */}

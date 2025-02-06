@@ -1,3 +1,13 @@
+.roundmap-container {
+  position: relative;
+  padding: 10px;
+  font-family: 'Roboto', sans-serif;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 svg {
   width: 100%;
   height: 100%;
