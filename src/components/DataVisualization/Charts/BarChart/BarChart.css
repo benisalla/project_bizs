@@ -1,10 +1,10 @@
-.bar-chart-container{
+.bar-chart-container {
     position: relative;
     width: 100%;
     height: 100%;
 }
 
-.chart-tooltip{
+.chart-tooltip {
     position: absolute;
     visibility: hidden;
     background-color: #fefefe;
@@ -34,6 +34,7 @@
     width: 30px;
     height: 30px;
     border-radius: 50%;
+    transition: background 0.3s, color 0.3s;
 }
 
 .bar-chart-close-button:hover {
@@ -64,6 +65,61 @@
 .double-slider-container {
     margin-top: -56px;
     width: 100%;
-    /* padding: 10px; */
     background: rgba(255, 255, 255, 0.8);
+}
+
+.chart-controls {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+}
+
+.water-type-switch {
+    display: flex;
+}
+
+.water-type-btn {
+    padding: 5px 10px;
+    border: 1px solid #ccc;
+    background: #fff;
+    cursor: pointer;
+    margin-right: 5px;
+    border-radius: 4px;
+    transition: background 0.3s, color 0.3s;
+}
+
+.water-type-btn.active {
+    background: #4caf50;
+    color: #fff;
+    border-color: #4caf50;
+}
+
+.variable-selector select {
+    padding: 5px;
+    border: 1px solid #ccc;
+    background: #fff;
+    border-radius: 5px;
+}
+
+.chart-legend {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    background: rgba(255, 255, 255, 0.8);
+    padding: 10px;
+    border-radius: 6px;
+    box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.tooltip-content {
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    line-height: 1.4;
+    text-align: left;
 }

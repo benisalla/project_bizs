@@ -67,8 +67,9 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
     const svg = d3
       .select(mapRef.current)
       .attr("width", "100%")
-      .attr("height", "auto")
+      .attr("height", 600)
       .attr("viewBox", `0 0 ${width} ${height}`);
+
 
     // Create a Mercator projection
     const projection = d3
