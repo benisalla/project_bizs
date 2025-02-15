@@ -18,7 +18,10 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   const [zoomScale, setZoomScale] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [lineChartData, setLineChartData] = useState([]);
+  const [lineData, setLineData] = useState({
+    lineData: [],
+    popuData: [],
+  });
   const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
   const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
@@ -287,7 +290,8 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   useEffect(() => {
     if (selectedChart === 'LineChart') {
       const lineData = filterWaterDataByCountry(selectedCountry, waterData);
-      setLineChartData(lineData);
+      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
+      setLineData({ lineData, popuData });
       setIsLineChartOpen(true);
       setSelectedChart(null);
     }
@@ -343,7 +347,7 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
       {/* line chart */}
       <LineChart
         title={`Line Chart of ${selectedCountry}`}
-        lineData={lineChartData}
+        data={lineData}
         isOpen={isLineChartOpen}
         onClose={() => {
           setIsLineChartOpen(false);

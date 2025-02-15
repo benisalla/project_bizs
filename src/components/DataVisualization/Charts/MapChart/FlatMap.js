@@ -15,7 +15,10 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
   const [zoomScale, setZoomScale] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [lineChartData, setLineChartData] = useState([]);
+  const [lineData, setLineData] = useState({
+    lineData: [],
+    popuData: [],
+  });
   const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
   const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
@@ -26,7 +29,6 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
     popuData: [],
   });
   const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
-
 
   const width = 960;
   const height = 600;
@@ -267,8 +269,8 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
   useEffect(() => {
     if (selectedChart === 'LineChart') {
       const lineData = filterWaterDataByCountry(selectedCountry, waterData);
-      console.log("Line Data:", lineData);
-      setLineChartData(lineData);
+      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
+      setLineData({ lineData, popuData });
       setIsLineChartOpen(true);
       setSelectedChart(null);
     }
@@ -280,7 +282,6 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
 
     if (selectedChart === 'AreaStats') {
       const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
-      console.log("Area Stats Data:", area_stats_data);
       setAreaStatsData(area_stats_data);
       setIsAreaStatsOpen(true);
       setSelectedChart(null);
@@ -322,7 +323,7 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
       {/* line chart */}
       <LineChart
         title={`Line Chart of ${selectedCountry}`}
-        lineData={lineChartData}
+        data={lineData}
         isOpen={isLineChartOpen}
         onClose={() => {
           setIsLineChartOpen(false);
