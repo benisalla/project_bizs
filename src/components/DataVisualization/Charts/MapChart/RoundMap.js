@@ -4,11 +4,11 @@ import './RoundMap.css';
 import ChartSelector from '../../Modals/ChartSelector';
 import LineChart from '../LineChart/LineChart';
 import AreaStats from '../AreaStats/AreaStats';
-import { filterDataByCountry } from '../../../APIs/DataUtils';
+import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
+import BarChart from '../BarChart/BarChart';
 
 
-
-const RoundMap = ({ roundGeoJson, waterData }) => {
+const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   const svgRef = useRef();
   const tooltipRef = useRef();
   const baseScaleRef = useRef(null);
@@ -24,6 +24,10 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
   const [selectedChart, setSelectedChart] = useState(null);
   const [areaStatsData, setAreaStatsData] = useState([]);
   const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
+  const [barData, setBarData] = useState({
+    barData: [],
+    popuData: [],
+  });
   const [isBarChartOpen, setIsBarChartOpen] = useState(false);
   const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
   const [filteredDataByYear, setFilteredDataByYear] = useState([]);
@@ -64,12 +68,36 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
   // ==============================================
   useEffect(() => {
     const handleResize = () => {
-      setDimensions({ width: window.innerWidth, height: window.innerHeight });
+      const newWidth = window.innerWidth;
+      const newHeight = window.innerHeight;
+      setDimensions({ width: newWidth, height: newHeight });
+
+      if (roundGeoJson) {
+        const svg = d3.select(svgRef.current)
+          .attr('width', newWidth)
+          .attr('height', newHeight)
+          .attr('viewBox', `0 0 ${newWidth} ${newHeight}`);
+
+        const projection = d3.geoOrthographic()
+          .fitSize([newWidth / 2, newHeight], roundGeoJson)
+          .translate([newWidth / 2, newHeight / 2]);
+
+        if (baseScaleRef.current !== null) {
+          projection.scale(baseScaleRef.current * zoomScale);
+        }
+
+        const path = d3.geoPath().projection(projection);
+        const graticule = d3.geoGraticule();
+
+        svg.selectAll('.graticule').attr('d', path(graticule()));
+        svg.selectAll('.country').attr('d', path);
+      }
     };
 
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  }, [roundGeoJson, zoomScale]);
+
 
   const updateGlobe = useCallback((svg, path, graticule, projection) => {
     projection.rotate([rotation.x, rotation.y]);
@@ -86,11 +114,16 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
       // colorscale for the countries
       const colorScale = d3.scaleLinear()
         .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
-        .range(["red", "yellow", "blue"]);
+        .range(["red", "yellow", "blue"])
+        .interpolate(d3.interpolateRgb);
 
-      const svg = d3.select(svgRef.current);
       const width = dimensions.width;
       const height = dimensions.height;
+
+      const svg = d3.select(svgRef.current)
+        .attr('width', width)
+        .attr('height', height)
+        .attr('viewBox', `0 0 ${width} ${height}`);
 
       const projection = d3.geoOrthographic()
         .fitSize([width / 2, height], roundGeoJson)
@@ -104,8 +137,6 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
 
       const path = d3.geoPath().projection(projection);
       const graticule = d3.geoGraticule();
-
-      svg.attr('width', width).attr('height', height);
 
       svg.selectAll('*').remove();
 
@@ -255,7 +286,7 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
   // ==============================================
   useEffect(() => {
     if (selectedChart === 'LineChart') {
-      const lineData = filterDataByCountry(selectedCountry, waterData);
+      const lineData = filterWaterDataByCountry(selectedCountry, waterData);
       setLineChartData(lineData);
       setIsLineChartOpen(true);
       setSelectedChart(null);
@@ -267,13 +298,16 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
     }
 
     if (selectedChart === 'AreaStats') {
-      const area_stats_data = filterDataByCountry(selectedCountry, waterData);
+      const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
       setAreaStatsData(area_stats_data);
       setIsAreaStatsOpen(true);
       setSelectedChart(null);
     }
 
     if (selectedChart === 'BarChart') {
+      const barData = filterWaterDataByCountry(selectedCountry, waterData);
+      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
+      setBarData({ barData, popuData });
       setIsBarChartOpen(true);
       setSelectedChart(null);
     }
@@ -291,27 +325,10 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
 
   return (
     <>
-
       <div className="roundmap-container">
         <svg ref={svgRef}></svg>
-        <div
-          ref={tooltipRef}
-          style={{
-            position: "absolute",
-            visibility: "hidden",
-            backgroundColor: "#fefefe",
-            border: "1px solid #d1d1d1",
-            borderRadius: "6px",
-            padding: "10px",
-            fontSize: "12px",
-            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
-            pointerEvents: "none",
-            opacity: 0,
-            transition: "opacity 0.2s"
-          }}
-        />
+        <div ref={tooltipRef} className="map-tooltip"></div>
       </div>
-
 
       {/* here we select the chart we want */}
       <ChartSelector
@@ -330,6 +347,17 @@ const RoundMap = ({ roundGeoJson, waterData }) => {
         isOpen={isLineChartOpen}
         onClose={() => {
           setIsLineChartOpen(false);
+          setSelectedCountry(null);
+        }}
+      />
+
+      {/* Bar Chart */}
+      <BarChart
+        data={barData}
+        title={`Bar Chart of ${selectedCountry}`}
+        isOpen={isBarChartOpen}
+        onClose={() => {
+          setIsBarChartOpen(false);
           setSelectedCountry(null);
         }}
       />

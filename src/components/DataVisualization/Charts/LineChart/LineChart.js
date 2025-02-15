@@ -2,7 +2,7 @@ import React, { useRef, useEffect, useCallback } from "react";
 import * as d3 from "d3";
 import Modal from "react-modal";
 import "./LineChart.css";
-import { groupDataByYear } from "../../../APIs/DataUtils";
+import { groupWaterDataByYear } from "../../../APIs/DataUtils";
 
 Modal.setAppElement('#root');
 
@@ -31,12 +31,9 @@ const LineChart = ({ lineData, title, isOpen, onClose }) => {
         const resourceData = lineData.filter(d => d.type === "resource");
         const usageData = lineData.filter(d => d.type === "usage");
 
-        console.log("first resource data:", resourceData[0]);
-        console.log("first usage data:", usageData[0]);
-
         // 2) Group each subset by Year 
-        const resourceByYear = groupDataByYear(resourceData);
-        const usageByYear = groupDataByYear(usageData);
+        const resourceByYear = groupWaterDataByYear(resourceData);
+        const usageByYear = groupWaterDataByYear(usageData);
 
         console.log("First Resource By Year:", resourceByYear[0]);
         console.log("First Usage By Year:", usageByYear[0]);
@@ -298,7 +295,7 @@ const LineChart = ({ lineData, title, isOpen, onClose }) => {
                 },
             }}
         >
-            <div className="linechart-container"
+            <div className="chart-container"
                 style={{
                     position: "relative",
                     top: 0,
@@ -310,7 +307,7 @@ const LineChart = ({ lineData, title, isOpen, onClose }) => {
                 <button onClick={onClose} className="close-button">
                     &times;
                 </button>
-                <svg ref={svgRef} className="linechart-svg"></svg>
+                <svg ref={svgRef} className="chart-svg"></svg>
                 <div
                     ref={tooltipRef}
                     style={{

@@ -3,14 +3,14 @@ import * as d3 from "d3";
 import "./FlatMap.css";
 import ChartSelector from "../../Modals/ChartSelector";
 import LineChart from "../LineChart/LineChart";
+import BarChart from "../BarChart/BarChart";
 import AreaStats from "../AreaStats/AreaStats";
-import { filterDataByCountry } from '../../../APIs/DataUtils';
+import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
 
 
-function FlatMap({ flatGeoJson, waterData }) {
+function FlatMap({ flatGeoJson, waterData, populationData }) {
   const mapRef = useRef(null);
   const tooltipRef = useRef(null);
-  const popupRef = useRef(null);
   const baseScaleRef = useRef(null);
   const [zoomScale, setZoomScale] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState(null);
@@ -21,6 +21,10 @@ function FlatMap({ flatGeoJson, waterData }) {
   const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
   const [areaStatsData, setAreaStatsData] = useState([]);
   const [isBarChartOpen, setIsBarChartOpen] = useState(false);
+  const [barData, setBarData] = useState({
+    barData: [],
+    popuData: [],
+  });
   const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
 
 
@@ -43,7 +47,8 @@ function FlatMap({ flatGeoJson, waterData }) {
     // Create a color scale
     const colorScale = d3.scaleLinear()
       .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
-      .range(["red", "yellow", "blue"]);
+      .range(["blue", "white", "red"])
+      .interpolate(d3.interpolateRgb);
 
     // Rollup the data by UnifiedName
     const rollup = d3.rollups(
@@ -61,8 +66,9 @@ function FlatMap({ flatGeoJson, waterData }) {
     // Select or create the SVG
     const svg = d3
       .select(mapRef.current)
-      .attr("width", width)
-      .attr("height", height);
+      .attr("width", "100%")
+      .attr("height", "auto")
+      .attr("viewBox", `0 0 ${width} ${height}`);
 
     // Create a Mercator projection
     const projection = d3
@@ -187,7 +193,7 @@ function FlatMap({ flatGeoJson, waterData }) {
 
     const legendWidth = 10;
     const legendHeight = 250;
-    const legendX = width;
+    const legendX = width - 50;
     const legendY = 100;
 
     const legend = svg.append("g")
@@ -259,7 +265,7 @@ function FlatMap({ flatGeoJson, waterData }) {
 
   useEffect(() => {
     if (selectedChart === 'LineChart') {
-      const lineData = filterDataByCountry(selectedCountry, waterData);
+      const lineData = filterWaterDataByCountry(selectedCountry, waterData);
       console.log("Line Data:", lineData);
       setLineChartData(lineData);
       setIsLineChartOpen(true);
@@ -272,7 +278,7 @@ function FlatMap({ flatGeoJson, waterData }) {
     }
 
     if (selectedChart === 'AreaStats') {
-      const area_stats_data = filterDataByCountry(selectedCountry, waterData);
+      const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
       console.log("Area Stats Data:", area_stats_data);
       setAreaStatsData(area_stats_data);
       setIsAreaStatsOpen(true);
@@ -280,6 +286,9 @@ function FlatMap({ flatGeoJson, waterData }) {
     }
 
     if (selectedChart === 'BarChart') {
+      const barData = filterWaterDataByCountry(selectedCountry, waterData);
+      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
+      setBarData({ barData, popuData });
       setIsBarChartOpen(true);
       setSelectedChart(null);
     }
@@ -295,40 +304,7 @@ function FlatMap({ flatGeoJson, waterData }) {
     <>
       <div className="flatmap-container">
         <svg ref={mapRef} />
-
-        {/* Tooltip */}
-        <div
-          ref={tooltipRef}
-          style={{
-            position: "absolute",
-            visibility: "hidden",
-            backgroundColor: "#fefefe",
-            border: "1px solid #d1d1d1",
-            borderRadius: "6px",
-            padding: "10px",
-            fontSize: "12px",
-            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
-            pointerEvents: "none",
-            opacity: 0
-          }}
-        />
-
-        {/* Popup chart */}
-        <div
-          ref={popupRef}
-          style={{
-            position: "absolute",
-            visibility: "hidden",
-            width: "600px",
-            height: "350px",
-            background: "#fff",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-            padding: "20px"
-          }}
-        />
-
+        <div ref={tooltipRef} className="map-tooltip" />
       </div>
 
 
@@ -349,6 +325,17 @@ function FlatMap({ flatGeoJson, waterData }) {
         isOpen={isLineChartOpen}
         onClose={() => {
           setIsLineChartOpen(false);
+          setSelectedCountry(null);
+        }}
+      />
+
+      {/* Bar Chart */}
+      <BarChart
+        data={barData}
+        title={`Bar Chart of ${selectedCountry}`}
+        isOpen={isBarChartOpen}
+        onClose={() => {
+          setIsBarChartOpen(false);
           setSelectedCountry(null);
         }}
       />

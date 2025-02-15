@@ -1,19 +1,34 @@
 .flatmap-container {
     position: relative;
-    padding: 10px;
     font-family: 'Roboto', sans-serif;
-    min-height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
 }
 
 .flatmap-container svg {
-    display: block;
-    padding: 10px;
-    margin: 20px auto;
-    max-width: 100%;
-    height: auto;
-    background-color: #fff;
+    width: 100%;
+    max-width: 960px;
+    border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    margin: 10px auto;
+}
+
+.map-tooltip {
+    position: absolute;
+    background-color: #fefefe;
+    border: 1px solid #d1d1d1;
+    border-radius: 6px;
+    padding: 10px;
+    font-size: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+@media (max-width: 600px) {
+    .tooltip {
+        font-size: 10px;
+    }
 }

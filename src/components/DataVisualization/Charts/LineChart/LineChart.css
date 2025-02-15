@@ -18,7 +18,7 @@
     color: white;
 }
 
-.linechart-svg {
+.chart-svg {
     max-width: 100%;
     max-height: 100%;
 }
@@ -33,7 +33,7 @@
     stroke: #ccc;
 }
 
-.linechart-title {
+.chart-title {
     font-size: 16px;
     text-anchor: middle;
 }

@@ -1,0 +1,69 @@
+.double-container {
+    width: 100%;
+    text-align: center;
+    margin-bottom: 1em;
+}
+
+.double-slider {
+    position: relative;
+    width: 80%;
+    margin: 0 auto;
+    height: 40px;
+}
+
+/* Remove pointer-events: none so both inputs can be interacted with */
+.double-slider input[type="range"] {
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 100%;
+    background: transparent;
+    -webkit-appearance: none;
+    z-index: 1;
+}
+
+/* Ensure the left and right thumbs have their own z-index */
+.double-slider input[type="range"].thumb--left {
+    z-index: 2;
+}
+
+.double-slider input[type="range"].thumb--right {
+    z-index: 3;
+}
+
+/* Track styling for WebKit browsers */
+.double-slider input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+}
+
+/* Thumb styling for WebKit browsers */
+.double-slider input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4CAF50;
+    border: 2px solid #fff;
+    cursor: pointer;
+    margin-top: -8px;
+}
+
+/* Track styling for Firefox */
+.double-slider input[type="range"]::-moz-range-track {
+    height: 4px;
+    background: #ddd;
+    border-radius: 2px;
+}
+
+/* Thumb styling for Firefox */
+.double-slider input[type="range"]::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #4CAF50;
+    border: 2px solid #fff;
+    cursor: pointer;
+}

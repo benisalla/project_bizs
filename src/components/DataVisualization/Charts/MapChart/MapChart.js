@@ -10,6 +10,7 @@ const flat_countries_path = process.env.PUBLIC_URL + "/assets/dataset/countries-
 const round_countries_path = process.env.PUBLIC_URL + "/assets/dataset/round-countries.geo.json";
 const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/water_use_rsc_dataset.csv";
 const map_countries_names_path = process.env.PUBLIC_URL + "/assets/dataset/map-country-names.json";
+const population_data_path = process.env.PUBLIC_URL + "/assets/dataset/population.csv";
 
 
 const loadGeoJSON = async (filePath) => {
@@ -24,6 +25,7 @@ const loadGeoJSON = async (filePath) => {
         console.error("Error loading or parsing the GeoJSON file:", err);
         return {};
     }
+
 };
 
 
@@ -35,6 +37,7 @@ const MapChart = () => {
     const [waterData, setWaterData] = useState([]);
     const [roundGeoJson, setRoundGeoJson] = useState({});
     const [selectedYear, setSelectedYear] = useState(2000);
+    const [populationData, setPopulationData] = useState([]);
 
     const handleYearSelection = (e) => {
         setSelectedYear(() => Number(e.target.value));
@@ -61,14 +64,23 @@ const MapChart = () => {
         Promise.all([
             loadGeoJSON(round_countries_path),
             d3.json(flat_countries_path),
-            d3.csv(water_data_path)
+            d3.csv(water_data_path),
+            d3.csv(population_data_path),
         ]).then(values => {
-            const [roundJson, flatJson, waterCsv] = values;
+            const [roundJson, flatJson, waterCsv, popuCsv] = values;
 
             if (!roundJson || !roundJson.features || !flatJson || !flatJson.objects) {
                 console.error("Failed to load or parse GeoJSON data");
                 return;
             }
+
+            // Process population data
+            popuCsv.forEach(d => {
+                d.UnifiedName = d['Country Code'];
+                for (let year = 1960; year <= 2023; year++) {
+                    d[year] = +d[year] || 0;
+                }
+            });
 
             // Process water data
             waterCsv.forEach(d => {
@@ -109,7 +121,8 @@ const MapChart = () => {
 
             setRoundGeoJson(new_roundJson);
             setFlatGeoJson(new_flatJson);
-            setWaterData(waterCsv);
+            setWaterData(() => waterCsv);
+            setPopulationData(() => popuCsv);
         });
     }, [nameMapping, selectedYear]);
 
@@ -163,9 +176,10 @@ const MapChart = () => {
 
             {roundGeoJson && flatGeoJson && waterData.length > 0 && (
                 flatMap ?
-                    <FlatMap flatGeoJson={flatGeoJson} waterData={waterData} /> :
-                    <RoundMap roundGeoJson={roundGeoJson} waterData={waterData} />
+                    <FlatMap flatGeoJson={flatGeoJson} waterData={waterData} populationData={populationData}/> :
+                    <RoundMap roundGeoJson={roundGeoJson} waterData={waterData} populationData={populationData}/>
             )}
+          
         </div>
     );
 };

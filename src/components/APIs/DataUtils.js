@@ -1,16 +1,24 @@
 import * as d3 from 'd3';
 
-const filterDataByCountry = (countryName, waterData) => {
+const filterWaterDataByCountry = (countryName, waterData) => {
   if (!countryName || !waterData || waterData.length === 0) {
     return [];
   }
 
   const filteredData = waterData.filter(row => row.UnifiedName === countryName);
-
   return filteredData;
 };
 
-const filterDataByYear = (year, waterData) => {
+const filterPupulationDataByCountry = (countryName, populationData) => {
+  if (!countryName || !populationData || populationData.length === 0) {
+    return [];
+  }
+
+  const filteredData = populationData.filter(row => row.UnifiedName === countryName);
+  return filteredData;
+};
+
+const filterWaterDataByYear = (year, waterData) => {
   if (!year || !waterData || waterData.length === 0) {
     return [];
   }
@@ -20,7 +28,7 @@ const filterDataByYear = (year, waterData) => {
   return filteredData;
 };
 
-const filterDataByCountryAndYear = (countryName, year, waterData) => {
+const filterWaterDataByCountryAndYear = (countryName, year, waterData) => {
   if (!countryName || !year || !waterData || waterData.length === 0) {
     return [];
   }
@@ -30,7 +38,7 @@ const filterDataByCountryAndYear = (countryName, year, waterData) => {
   return filteredData;
 };
 
-const groupDataByYear = (data) => {
+const groupWaterDataByYear = (data) => {
   const groupedData = d3.rollups(
     data,
     v => d3.sum(v, d => parseFloat(d.Value)),
@@ -90,10 +98,11 @@ function computeNumericStats(data) {
 
 
 export {
-  filterDataByCountry,
-  filterDataByYear,
-  filterDataByCountryAndYear,
-  groupDataByYear,
-  computeNumericStats
+  filterWaterDataByCountry,
+  filterWaterDataByYear,
+  filterWaterDataByCountryAndYear,
+  groupWaterDataByYear,
+  computeNumericStats,
+  filterPupulationDataByCountry
 };
 
