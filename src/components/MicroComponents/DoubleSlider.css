@@ -1,7 +1,13 @@
 .double-container {
     width: 100%;
     text-align: center;
-    margin-bottom: 1em;
+    margin-top: 10px;
+}
+
+.slider-values {
+    font-size: 16px;
+    font-weight: bold;
+    color: #333;
 }
 
 .double-slider {
@@ -11,59 +17,70 @@
     height: 40px;
 }
 
-/* Remove pointer-events: none so both inputs can be interacted with */
-.double-slider input[type="range"] {
+.slider-track {
     position: absolute;
-    left: 0;
-    top: 10px;
     width: 100%;
-    background: transparent;
-    -webkit-appearance: none;
-    z-index: 1;
-}
-
-/* Ensure the left and right thumbs have their own z-index */
-.double-slider input[type="range"].thumb--left {
-    z-index: 2;
-}
-
-.double-slider input[type="range"].thumb--right {
-    z-index: 3;
-}
-
-/* Track styling for WebKit browsers */
-.double-slider input[type="range"]::-webkit-slider-runnable-track {
     height: 4px;
     background: #ddd;
     border-radius: 2px;
+    top: 18px;
+    left: 0;
+    z-index: 1;
 }
 
-/* Thumb styling for WebKit browsers */
+.slider-range {
+    position: absolute;
+    height: 4px;
+    background: #4caf50;
+    border-radius: 2px;
+    top: 18px;
+    z-index: 2;
+    transition: left 0.3s ease, width 0.3s ease;
+}
+
+.double-slider input[type="range"] {
+    position: absolute;
+    left: 0;
+    top: 2px;
+    width: 100%;
+    background: transparent;
+    pointer-events: none;
+    -webkit-appearance: none;
+    z-index: 3;
+}
+
+.double-slider input[type="range"].thumb--left,
+.double-slider input[type="range"].thumb--right {
+    pointer-events: auto;
+}
+
 .double-slider input[type="range"]::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #4CAF50;
+    background: #4caf50;
     border: 2px solid #fff;
     cursor: pointer;
-    margin-top: -8px;
+    margin-top: 8px;
 }
 
-/* Track styling for Firefox */
-.double-slider input[type="range"]::-moz-range-track {
-    height: 4px;
-    background: #ddd;
-    border-radius: 2px;
+.double-slider input[type="range"]::-webkit-slider-runnable-track {
+    height: 0;
+    background: transparent;
 }
 
-/* Thumb styling for Firefox */
 .double-slider input[type="range"]::-moz-range-thumb {
     width: 20px;
     height: 20px;
     border-radius: 50%;
-    background: #4CAF50;
+    background: #4caf50;
     border: 2px solid #fff;
     cursor: pointer;
+}
+
+.double-slider input[type="range"]::-moz-range-track {
+    height: 0;
+    background: transparent;
 }

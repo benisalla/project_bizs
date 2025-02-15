@@ -1,19 +1,27 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import "./DoubleSlider.css";
 
 const DoubleSlider = ({ min = 1967, max = 2021, onChange }) => {
-    // Initial state for the two thumbs.
     const [minVal, setMinVal] = useState(min);
     const [maxVal, setMaxVal] = useState(max);
+    const rangeRef = useRef(null);
 
-    // When the left (min) slider changes.
+    // Update the slider range fill whenever minVal or maxVal changes.
+    useEffect(() => {
+        if (rangeRef.current) {
+            const percentMin = ((minVal - min) / (max - min)) * 100;
+            const percentMax = ((maxVal - min) / (max - min)) * 100;
+            rangeRef.current.style.left = `${percentMin}%`;
+            rangeRef.current.style.width = `${percentMax - percentMin}%`;
+        }
+    }, [minVal, maxVal, min, max]);
+
     const handleMinChange = (e) => {
         const value = Math.min(Number(e.target.value), maxVal - 1);
         setMinVal(value);
         if (onChange) onChange([value, maxVal]);
     };
 
-    // When the right (max) slider changes.
     const handleMaxChange = (e) => {
         const value = Math.max(Number(e.target.value), minVal + 1);
         setMaxVal(value);
@@ -22,13 +30,19 @@ const DoubleSlider = ({ min = 1967, max = 2021, onChange }) => {
 
     return (
         <div className="double-container">
-            <h4>
-                Selected Interval: {minVal} - {maxVal}
-            </h4>
+            {/* Integrated selected interval text */}
+            <div className="slider-values">
+                <span>
+                    Selected Interval: {minVal} - {maxVal}
+                </span>
+            </div>
             <div className="double-slider">
-                {/* Left thumb for minimum value */}
+                {/* The static track */}
+                <div className="slider-track" />
+                {/* The highlighted range fill */}
+                <div className="slider-range" ref={rangeRef} />
+                {/* Left thumb */}
                 <input
-                    id="minYear"
                     type="range"
                     min={min}
                     max={max}
@@ -36,9 +50,8 @@ const DoubleSlider = ({ min = 1967, max = 2021, onChange }) => {
                     onChange={handleMinChange}
                     className="thumb thumb--left"
                 />
-                {/* Right thumb for maximum value */}
+                {/* Right thumb */}
                 <input
-                    id="maxYear"
                     type="range"
                     min={min}
                     max={max}
