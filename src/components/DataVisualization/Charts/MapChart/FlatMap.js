@@ -5,6 +5,7 @@ import ChartSelector from "../../Modals/ChartSelector";
 import LineChart from "../LineChart/LineChart";
 import BarChart from "../BarChart/BarChart";
 import AreaStats from "../AreaStats/AreaStats";
+import ScatterChart from "../ScatterChart/ScatterChart";
 import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
 
 
@@ -25,10 +26,14 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
   const [areaStatsData, setAreaStatsData] = useState([]);
   const [isBarChartOpen, setIsBarChartOpen] = useState(false);
   const [barData, setBarData] = useState({
-    barData: [],
-    popuData: [],
+    "barData": [],
+    "popuData": [],
   });
   const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
+  const [scatterData, setScatterData] = useState({
+    "scatterData": [],
+    "popuData": [],
+  });
 
   const width = 960;
   const height = 600;
@@ -268,14 +273,17 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
 
   useEffect(() => {
     if (selectedChart === 'LineChart') {
-      const lineData = filterWaterDataByCountry(selectedCountry, waterData);
-      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setLineData({ lineData, popuData });
+      const line_Data = filterWaterDataByCountry(selectedCountry, waterData);
+      const popu_Data = filterPupulationDataByCountry(selectedCountry, populationData);
+      setLineData({ "lineData": line_Data, "popuData": popu_Data });
       setIsLineChartOpen(true);
       setSelectedChart(null);
     }
 
     if (selectedChart === 'ScatterChart') {
+      const scatter_Data = filterWaterDataByCountry(selectedCountry, waterData);
+      const popu_Data = filterPupulationDataByCountry(selectedCountry, populationData);
+      setScatterData({ "scatterData": scatter_Data, "popuData": popu_Data });
       setIsScatterChartOpen(true);
       setSelectedChart(null);
     }
@@ -290,7 +298,7 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
     if (selectedChart === 'BarChart') {
       const barData = filterWaterDataByCountry(selectedCountry, waterData);
       const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setBarData({ barData, popuData });
+      setBarData({ "barData": barData, "popuData": popuData }); 
       setIsBarChartOpen(true);
       setSelectedChart(null);
     }
@@ -338,6 +346,17 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
         isOpen={isBarChartOpen}
         onClose={() => {
           setIsBarChartOpen(false);
+          setSelectedCountry(null);
+        }}
+      />
+
+      {/* Scatter Chart */}
+      <ScatterChart
+        title={`Scatter Chart of ${selectedCountry}`}
+        data={scatterData}
+        isOpen={isScatterChartOpen}
+        onClose={() => {
+          setIsScatterChartOpen(false);
           setSelectedCountry(null);
         }}
       />
