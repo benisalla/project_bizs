@@ -32,7 +32,7 @@ const loadGeoJSON = async (filePath) => {
 
 
 const DataVisualization = () => {
-  const [selectedCountry, setSelectedCountry] = useState(null);
+  const [selectedCountry, setSelectedCountry] = useState("MAR");
   const { showLoader, hideLoader } = useLoader();
   const [isLoading, setIsLoading] = useState(true);
   const [country2CodeMapping, setCountry2CodeMapping] = useState({});

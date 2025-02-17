@@ -15,10 +15,10 @@ const CountryDetails = ({ code2CountryMapping, countryUnifiedName, waterData, po
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
-    const countryCode = code2CountryMapping[countryUnifiedName];
-    console.log("Country code: ", countryCode);
-    if (countryCode) {
-      d3.json(`/assets/dataset/countries/${countryCode}.json`).then((geoJsonData) => {
+    const countryName = code2CountryMapping[countryUnifiedName];
+    // console.log("Country code: ", countryName);
+    if (countryName) {
+      d3.json(`/assets/dataset/countries/${countryUnifiedName}.json`).then((geoJsonData) => {
         console.log("GeoJson data: ", geoJsonData);
         setCountryGeoJson(geoJsonData);
         setIsLoaded(true);
