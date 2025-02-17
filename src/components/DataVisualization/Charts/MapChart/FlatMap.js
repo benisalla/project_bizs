@@ -9,7 +9,15 @@ import ScatterChart from "../ScatterChart/ScatterChart";
 import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
 
 
-function FlatMap({ flatGeoJson, waterData, populationData }) {
+const FlatMap = (
+  {
+    flatGeoJson,
+    waterData,
+    populationData,
+    // temperatureData,
+    onCountryClick
+  }) => {
+
   const mapRef = useRef(null);
   const tooltipRef = useRef(null);
   const baseScaleRef = useRef(null);
@@ -42,7 +50,7 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
   // Draw or Update the Map
   // ==============================================
   useEffect(() => {
-    if (!flatGeoJson || waterData.length === 0) return;
+    if (!flatGeoJson) return;
 
     // min and max values of waterQTbyYear
     const totalValues = flatGeoJson.features.map(
@@ -118,8 +126,12 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
 
     // When a country is clicked, use its UnifiedName.
     function handleClick(e, d) {
-      console.log("Clicked on:", d.properties.UnifiedName);
-      setSelectedCountry(d.properties.UnifiedName);
+      // console.log("Clicked on:", d.properties.UnifiedName);
+      // setSelectedCountry(d.properties.UnifiedName);
+      if (onCountryClick) {
+        console.log("Clicked on:", d.properties.UnifiedName);
+        onCountryClick(d.properties.UnifiedName);
+      }
       setIsChartSelectorOpen(true);
     }
 
@@ -298,7 +310,7 @@ function FlatMap({ flatGeoJson, waterData, populationData }) {
     if (selectedChart === 'BarChart') {
       const barData = filterWaterDataByCountry(selectedCountry, waterData);
       const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setBarData({ "barData": barData, "popuData": popuData }); 
+      setBarData({ "barData": barData, "popuData": popuData });
       setIsBarChartOpen(true);
       setSelectedChart(null);
     }
