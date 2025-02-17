@@ -3,25 +3,45 @@ import * as d3 from "d3";
 import "./FlatMap.css";
 import ChartSelector from "../../Modals/ChartSelector";
 import LineChart from "../LineChart/LineChart";
+import BarChart from "../BarChart/BarChart";
 import AreaStats from "../AreaStats/AreaStats";
-import { filterDataByCountry } from '../../../APIs/DataUtils';
+import ScatterChart from "../ScatterChart/ScatterChart";
+import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
 
 
-function FlatMap({ flatGeoJson, waterData }) {
+const FlatMap = (
+  {
+    flatGeoJson,
+    waterData,
+    populationData,
+    // temperatureData,
+    onCountryClick
+  }) => {
+
   const mapRef = useRef(null);
   const tooltipRef = useRef(null);
-  const popupRef = useRef(null);
-
+  const baseScaleRef = useRef(null);
+  const [zoomScale, setZoomScale] = useState(1);
   const [selectedCountry, setSelectedCountry] = useState(null);
   const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [lineChartData, setLineChartData] = useState([]);
+  const [lineData, setLineData] = useState({
+    lineData: [],
+    popuData: [],
+  });
   const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
   const [selectedChart, setSelectedChart] = useState(null);
   const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
   const [areaStatsData, setAreaStatsData] = useState([]);
   const [isBarChartOpen, setIsBarChartOpen] = useState(false);
+  const [barData, setBarData] = useState({
+    "barData": [],
+    "popuData": [],
+  });
   const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
-
+  const [scatterData, setScatterData] = useState({
+    "scatterData": [],
+    "popuData": [],
+  });
 
   const width = 960;
   const height = 600;
@@ -30,7 +50,20 @@ function FlatMap({ flatGeoJson, waterData }) {
   // Draw or Update the Map
   // ==============================================
   useEffect(() => {
-    if (!flatGeoJson || waterData.length === 0) return;
+    if (!flatGeoJson) return;
+
+    // min and max values of waterQTbyYear
+    const totalValues = flatGeoJson.features.map(
+      (d) => d.properties.waterQTbyYear || 0
+    );
+    const minTotal = d3.min(totalValues);
+    const maxTotal = d3.max(totalValues);
+
+    // Create a color scale
+    const colorScale = d3.scaleLinear()
+      .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
+      .range(["blue", "white", "red"])
+      .interpolate(d3.interpolateRgb);
 
     // Rollup the data by UnifiedName
     const rollup = d3.rollups(
@@ -45,25 +78,21 @@ function FlatMap({ flatGeoJson, waterData }) {
       valueByName[countryName] = totalValue;
     }
 
-    // Build a color scale
-    const allValues = Object.values(valueByName);
-    const maxVal = d3.max(allValues) || 0;
-    const colorScale = d3
-      .scaleLinear()
-      .domain([0, maxVal])
-      .range(["#e0f3f8", "#0868ac"]);
-
     // Select or create the SVG
     const svg = d3
       .select(mapRef.current)
-      .attr("width", width)
-      .attr("height", height);
+      .attr("width", "100%")
+      .attr("height", 600)
+      .attr("viewBox", `0 0 ${width} ${height}`);
+
 
     // Create a Mercator projection
     const projection = d3
       .geoMercator()
       .scale(150)
       .translate([width / 2, height / 1.4]);
+
+    baseScaleRef.current = projection.scale();
 
     const path = d3.geoPath().projection(projection);
 
@@ -97,8 +126,12 @@ function FlatMap({ flatGeoJson, waterData }) {
 
     // When a country is clicked, use its UnifiedName.
     function handleClick(e, d) {
-      console.log("Clicked on:", d.properties.UnifiedName);
-      setSelectedCountry(d.properties.UnifiedName);
+      // console.log("Clicked on:", d.properties.UnifiedName);
+      // setSelectedCountry(d.properties.UnifiedName);
+      if (onCountryClick) {
+        console.log("Clicked on:", d.properties.UnifiedName);
+        onCountryClick(d.properties.UnifiedName);
+      }
       setIsChartSelectorOpen(true);
     }
 
@@ -113,14 +146,7 @@ function FlatMap({ flatGeoJson, waterData }) {
       .transition()
       .duration(600)
       .ease(d3.easeCubicOut)
-      .attr("fill", d => {
-        const unifiedGeoName = d.properties.UnifiedName;
-        const val = valueByName[unifiedGeoName];
-        if (val === undefined || isNaN(val)) {
-          return "lightgray";
-        }
-        return colorScale(val);
-      });
+      .style('fill', d => colorScale(d.properties.waterQTbyYear))
 
     // Attach mouse & click listeners
     svg.selectAll(".country")
@@ -129,19 +155,66 @@ function FlatMap({ flatGeoJson, waterData }) {
       .on("mouseout", handleMouseOut)
       .on("click", handleClick);
 
+    // ***** Add zoom behavior here *****
+    const zoomBehavior = d3.zoom()
+      .filter(event => {
+        return (event.type === 'wheel' && event.ctrlKey) ||
+          (event.type === 'touchstart') ||
+          (event.type === 'touchmove') ||
+          (event.type === 'touchend');
+      })
+      .scaleExtent([0.2, 4])
+      .on('zoom', event => {
+        const newAbsoluteScale = baseScaleRef.current * event.transform.k;
+        if (Math.abs(newAbsoluteScale - projection.scale()) > 1e-5) {
+          svg.transition()
+            .duration(250)
+            .ease(d3.easeCubicOut)
+            .tween('zoom', () => {
+              const i = d3.interpolate(projection.scale(), newAbsoluteScale);
+              return t => {
+                projection.scale(i(t));
+                svg.selectAll('.country').attr('d', path);
+              };
+            });
+          setZoomScale(event.transform.k);
+        }
+      });
+
+    // Attach zoom behavior to the svg:
+    svg.call(zoomBehavior);
+
+
+    let lastX, lastY;
+    const dragBehavior = d3.drag()
+      .on("start", (event) => {
+        [lastX, lastY] = d3.pointer(event, svg.node());
+      })
+      .on("drag", (event) => {
+        const [currentX, currentY] = d3.pointer(event, svg.node());
+        const dx = currentX - lastX;
+        const dy = currentY - lastY;
+        const currentTranslate = projection.translate();
+        projection.translate([currentTranslate[0] + dx, currentTranslate[1] + dy]);
+        svg.selectAll(".country").attr("d", path);
+        lastX = currentX;
+        lastY = currentY;
+      });
+
+    svg.call(dragBehavior);
     // Draw or update a legend
-    drawLegend(svg, colorScale);
+    drawLegend(svg, colorScale, minTotal, maxTotal);
   }, [flatGeoJson, waterData]);
 
   // 4) Draw a Legend
-  function drawLegend(svg, colorScale) {
+  function drawLegend(svg, colorScale, minTotal, maxTotal) {
     // Remove any old legend
     svg.select(".legend").remove();
 
-    const legendWidth = 20;
-    const legendHeight = 200;
-    const legendX = width - 70;
-    const legendY = 50;
+    const legendWidth = 10;
+    const legendHeight = 250;
+    const legendX = width - 50;
+    const legendY = 100;
 
     const legend = svg.append("g")
       .attr("class", "legend")
@@ -156,16 +229,15 @@ function FlatMap({ flatGeoJson, waterData }) {
       .attr("x1", "0%").attr("x2", "0%")
       .attr("y1", "100%").attr("y2", "0%");
 
-    const stops = d3.ticks(0, 1, 10);
-    stops.forEach(stop => {
+    // Use three stops: one for the min, one for the mid, and one for the max.
+    const stops = [minTotal, (minTotal + maxTotal) / 2, maxTotal];
+    const stopPercents = ["0%", "50%", "100%"];
+    stops.forEach((d, i) => {
       gradient.append("stop")
-        .attr("offset", stop)
-        .attr("stop-color", colorScale(
-          colorScale.invert
-            ? colorScale.invert(stop)
-            : stop * colorScale.domain()[1]
-        ));
+        .attr("offset", stopPercents[i])
+        .attr("stop-color", colorScale(d));
     });
+
 
     legend.append("rect")
       .attr("width", legendWidth)
@@ -213,27 +285,32 @@ function FlatMap({ flatGeoJson, waterData }) {
 
   useEffect(() => {
     if (selectedChart === 'LineChart') {
-      const lineData = filterDataByCountry(selectedCountry, waterData);
-      console.log("Line Data:", lineData);
-      setLineChartData(lineData);
+      const line_Data = filterWaterDataByCountry(selectedCountry, waterData);
+      const popu_Data = filterPupulationDataByCountry(selectedCountry, populationData);
+      setLineData({ "lineData": line_Data, "popuData": popu_Data });
       setIsLineChartOpen(true);
       setSelectedChart(null);
     }
 
     if (selectedChart === 'ScatterChart') {
+      const scatter_Data = filterWaterDataByCountry(selectedCountry, waterData);
+      const popu_Data = filterPupulationDataByCountry(selectedCountry, populationData);
+      setScatterData({ "scatterData": scatter_Data, "popuData": popu_Data });
       setIsScatterChartOpen(true);
       setSelectedChart(null);
     }
 
     if (selectedChart === 'AreaStats') {
-      const area_stats_data = filterDataByCountry(selectedCountry, waterData);
-      console.log("Area Stats Data:", area_stats_data);
+      const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
       setAreaStatsData(area_stats_data);
       setIsAreaStatsOpen(true);
       setSelectedChart(null);
     }
 
     if (selectedChart === 'BarChart') {
+      const barData = filterWaterDataByCountry(selectedCountry, waterData);
+      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
+      setBarData({ "barData": barData, "popuData": popuData });
       setIsBarChartOpen(true);
       setSelectedChart(null);
     }
@@ -249,40 +326,7 @@ function FlatMap({ flatGeoJson, waterData }) {
     <>
       <div className="flatmap-container">
         <svg ref={mapRef} />
-
-        {/* Tooltip */}
-        <div
-          ref={tooltipRef}
-          style={{
-            position: "absolute",
-            visibility: "hidden",
-            backgroundColor: "#fefefe",
-            border: "1px solid #d1d1d1",
-            borderRadius: "6px",
-            padding: "10px",
-            fontSize: "12px",
-            boxShadow: "0px 4px 8px rgba(0, 0, 0, 0.15)",
-            pointerEvents: "none",
-            opacity: 0
-          }}
-        />
-
-        {/* Popup chart */}
-        <div
-          ref={popupRef}
-          style={{
-            position: "absolute",
-            visibility: "hidden",
-            width: "600px",
-            height: "350px",
-            background: "#fff",
-            border: "1px solid #ccc",
-            borderRadius: "8px",
-            boxShadow: "0 4px 8px rgba(0,0,0,0.2)",
-            padding: "20px"
-          }}
-        />
-
+        <div ref={tooltipRef} className="map-tooltip" />
       </div>
 
 
@@ -299,10 +343,32 @@ function FlatMap({ flatGeoJson, waterData }) {
       {/* line chart */}
       <LineChart
         title={`Line Chart of ${selectedCountry}`}
-        lineData={lineChartData}
+        data={lineData}
         isOpen={isLineChartOpen}
         onClose={() => {
           setIsLineChartOpen(false);
+          setSelectedCountry(null);
+        }}
+      />
+
+      {/* Bar Chart */}
+      <BarChart
+        data={barData}
+        title={`Bar Chart of ${selectedCountry}`}
+        isOpen={isBarChartOpen}
+        onClose={() => {
+          setIsBarChartOpen(false);
+          setSelectedCountry(null);
+        }}
+      />
+
+      {/* Scatter Chart */}
+      <ScatterChart
+        title={`Scatter Chart of ${selectedCountry}`}
+        data={scatterData}
+        isOpen={isScatterChartOpen}
+        onClose={() => {
+          setIsScatterChartOpen(false);
           setSelectedCountry(null);
         }}
       />

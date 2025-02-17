@@ -1,22 +1,31 @@
-svg {
+.roundmap-container {
+  position: relative;
+  font-family: 'Roboto', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.roundmap-container svg {
+  position: relative;
   width: 100%;
-  height: 100%;
-  background-color: rgba(255, 255, 255, 0.3);
-  pointer-events: all;
+  max-width: 960px;
+  height: auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  margin: 10px auto;
 }
 
 svg:active {
   cursor: grabbing;
 }
 
-/* The ocean */
 .sphere {
   fill: #b3dcef;
   stroke: #ccc;
   stroke-width: 0.5;
 }
 
-/* The graticule lines (longitude/latitude lines) */
 .graticule {
   fill: none;
   stroke: #ccc;
@@ -25,18 +34,14 @@ svg:active {
   stroke-opacity: 0.7;
 }
 
-/* The countries */
 .country {
   fill: #82b47a;
-  /* a greenish land color */
   stroke: #fff;
-  /* borders */
   stroke-width: 0.5;
   cursor: pointer;
   pointer-events: visible;
 }
 
-/* Info panel styling */
 .info {
   position: absolute;
   top: 20px;
@@ -64,16 +69,36 @@ svg:active {
   cursor: pointer;
 }
 
+.map-tooltip {
+  position: absolute;
+  visibility: hidden;
+  background-color: #fefefe;
+  border: 1px solid #d1d1d1;
+  border-radius: 6px;
+  padding: 10px;
+  font-size: 12px;
+  box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.15);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+}
+
+
 @media (max-width: 768px) {
-  .info {
-    font-size: 14px;
+  .roundmap-container {
+    padding: 10px;
+  }
+  .map-tooltip {
+    font-size: 10px;
     padding: 8px;
   }
 }
 
 @media (max-width: 480px) {
-  .info {
-    font-size: 12px;
-    padding: 6px;
+  .roundmap-container svg {
+    max-width: 100%;
+  }
+  .map-tooltip {
+    font-size: 9px;
   }
 }
