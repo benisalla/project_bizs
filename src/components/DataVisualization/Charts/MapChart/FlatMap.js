@@ -1,20 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import * as d3 from "d3";
 import "./FlatMap.css";
-import ChartSelector from "../../Modals/ChartSelector";
-import LineChart from "../LineChart/LineChart";
-import BarChart from "../BarChart/BarChart";
-import AreaStats from "../AreaStats/AreaStats";
-import ScatterChart from "../ScatterChart/ScatterChart";
-import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
 
 
 const FlatMap = (
   {
     flatGeoJson,
     waterData,
+    temperatureData,
     populationData,
-    // temperatureData,
     onCountryClick
   }) => {
 
@@ -22,26 +16,6 @@ const FlatMap = (
   const tooltipRef = useRef(null);
   const baseScaleRef = useRef(null);
   const [zoomScale, setZoomScale] = useState(1);
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [lineData, setLineData] = useState({
-    lineData: [],
-    popuData: [],
-  });
-  const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
-  const [selectedChart, setSelectedChart] = useState(null);
-  const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
-  const [areaStatsData, setAreaStatsData] = useState([]);
-  const [isBarChartOpen, setIsBarChartOpen] = useState(false);
-  const [barData, setBarData] = useState({
-    "barData": [],
-    "popuData": [],
-  });
-  const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
-  const [scatterData, setScatterData] = useState({
-    "scatterData": [],
-    "popuData": [],
-  });
 
   const width = 960;
   const height = 600;
@@ -65,18 +39,28 @@ const FlatMap = (
       .range(["blue", "white", "red"])
       .interpolate(d3.interpolateRgb);
 
-    // Rollup the data by UnifiedName
-    const rollup = d3.rollups(
+    // Rollup the waterData by UnifiedName
+    const rollupWater = d3.rollups(
       waterData,
       v => d3.sum(v, d => d.Value),
       d => d.UnifiedName
     );
-
-    // Convert to a simple object: key = UnifiedName, value = total water value
-    const valueByName = {};
-    for (let [countryName, totalValue] of rollup) {
-      valueByName[countryName] = totalValue;
+    const waterByName = {};
+    for (let [countryName, totalValue] of rollupWater) {
+      waterByName[countryName] = totalValue;
     }
+
+    // Map temperatureData by UnifiedName (each record contains a single value)
+    const temperatureByName = {};
+    temperatureData.forEach(d => {
+      temperatureByName[d.UnifiedName] = d.value;
+    });
+
+    // Map populationData by UnifiedName (each record contains a single value)
+    const populationByName = {};
+    populationData.forEach(d => {
+      populationByName[d.UnifiedName] = d.value;
+    });
 
     // Select or create the SVG
     const svg = d3
@@ -102,15 +86,17 @@ const FlatMap = (
     // MOUSE HANDLERS
     function handleMouseOver(e, d) {
       const unifiedName = d.properties.UnifiedName;
-      const val = valueByName[unifiedName];
+      const water_value = waterByName[unifiedName];
+      const popu_value = populationByName[unifiedName];
+      const temp_value = temperatureByName[unifiedName];
       tooltip
         .style("visibility", "visible")
         .style("opacity", 1)
         .html(`
           <strong>Country:</strong> ${unifiedName}<br/>
-          <strong>Value:</strong> ${val !== undefined && !isNaN(val)
-            ? val.toFixed(2)
-            : "N/A"}
+          <strong>Quantity Of Water:</strong> </br> ${water_value !== undefined && !isNaN(water_value) ? water_value.toFixed(2) : "N/A" }<br/>
+          <strong>Population:</strong> ${popu_value !== undefined ? popu_value : "N/A"}<br/>
+          <strong>Temperature:</strong> ${temp_value !== undefined ? temp_value.toFixed(2) : "N/A"}<br/>
         `);
     }
 
@@ -126,13 +112,9 @@ const FlatMap = (
 
     // When a country is clicked, use its UnifiedName.
     function handleClick(e, d) {
-      // console.log("Clicked on:", d.properties.UnifiedName);
-      // setSelectedCountry(d.properties.UnifiedName);
       if (onCountryClick) {
-        console.log("Clicked on:", d.properties.UnifiedName);
         onCountryClick(d.properties.UnifiedName);
       }
-      setIsChartSelectorOpen(true);
     }
 
     // BIND GEOJSON
@@ -272,117 +254,12 @@ const FlatMap = (
       .style("font-size", "12px");
   }
 
-
-  // ==============================================
-  // Handle Chart Selection
-  // ==============================================
-  useEffect(() => {
-    if (selectedCountry && waterData.length > 0) {
-      setIsChartSelectorOpen(true);
-    }
-  }, [selectedCountry]);
-
-
-  useEffect(() => {
-    if (selectedChart === 'LineChart') {
-      const line_Data = filterWaterDataByCountry(selectedCountry, waterData);
-      const popu_Data = filterPupulationDataByCountry(selectedCountry, populationData);
-      setLineData({ "lineData": line_Data, "popuData": popu_Data });
-      setIsLineChartOpen(true);
-      setSelectedChart(null);
-    }
-
-    if (selectedChart === 'ScatterChart') {
-      const scatter_Data = filterWaterDataByCountry(selectedCountry, waterData);
-      const popu_Data = filterPupulationDataByCountry(selectedCountry, populationData);
-      setScatterData({ "scatterData": scatter_Data, "popuData": popu_Data });
-      setIsScatterChartOpen(true);
-      setSelectedChart(null);
-    }
-
-    if (selectedChart === 'AreaStats') {
-      const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
-      setAreaStatsData(area_stats_data);
-      setIsAreaStatsOpen(true);
-      setSelectedChart(null);
-    }
-
-    if (selectedChart === 'BarChart') {
-      const barData = filterWaterDataByCountry(selectedCountry, waterData);
-      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setBarData({ "barData": barData, "popuData": popuData });
-      setIsBarChartOpen(true);
-      setSelectedChart(null);
-    }
-  }, [selectedChart]);
-
-
-  const handleSelectChart = (chartType) => {
-    setSelectedChart(chartType);
-    setIsChartSelectorOpen(false);
-  };
-
   return (
     <>
       <div className="flatmap-container">
         <svg ref={mapRef} />
         <div ref={tooltipRef} className="map-tooltip" />
       </div>
-
-
-      {/* here we select the chart we want */}
-      <ChartSelector
-        isOpen={isChartSelectorOpen}
-        onClose={() => {
-          setIsChartSelectorOpen(false);
-          setSelectedCountry(null);
-        }}
-        onSelect={handleSelectChart}
-      />
-
-      {/* line chart */}
-      <LineChart
-        title={`Line Chart of ${selectedCountry}`}
-        data={lineData}
-        isOpen={isLineChartOpen}
-        onClose={() => {
-          setIsLineChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Bar Chart */}
-      <BarChart
-        data={barData}
-        title={`Bar Chart of ${selectedCountry}`}
-        isOpen={isBarChartOpen}
-        onClose={() => {
-          setIsBarChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Scatter Chart */}
-      <ScatterChart
-        title={`Scatter Chart of ${selectedCountry}`}
-        data={scatterData}
-        isOpen={isScatterChartOpen}
-        onClose={() => {
-          setIsScatterChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Area Stats */}
-      <AreaStats
-        isOpen={isAreaStatsOpen}
-        onClose={() => {
-          setIsAreaStatsOpen(false);
-          setSelectedCountry(null);
-        }}
-        areaData={areaStatsData}
-        title={`${selectedCountry} Statistics`}
-      />
     </>
   );
 }

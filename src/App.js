@@ -1,10 +1,9 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import NavBar from './components/NavBar/NavBar';
 import Home from './components/Home/Home';
 import AboutUs from './components/AboutUs/AboutUs';
 import DataVisualization from './components/DataVisualization/DataVisualization';
-import TestPage from './components/TestPage/TestPage';
 import './App.css';
 
 const App = () => {
@@ -18,7 +17,6 @@ const App = () => {
             <Route path="/" element={<Home />} />
             <Route path="/about-us" element={<AboutUs />} />
             <Route path="/data-visualization" element={<DataVisualization />} />
-            <Route path="/test-page" element={<TestPage />} />
             <Route path="*" element={<h1>Page not found</h1>} />
           </Routes>
         </div>

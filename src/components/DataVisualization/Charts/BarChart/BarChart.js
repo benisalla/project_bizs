@@ -1,11 +1,9 @@
 import React, { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import * as d3 from "d3";
-import Modal from "react-modal";
 import "./BarChart.css";
 import { groupWaterDataByYear } from "../../../APIs/DataUtils";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
 
-Modal.setAppElement("#root");
 
 const getTooltipHtml = (type, d, extra = {}) => {
   switch (type) {
@@ -37,8 +35,8 @@ const getTooltipHtml = (type, d, extra = {}) => {
 };
 
 
-const BarChart = ({ data, title, isOpen, onClose }) => {
-  const svgRef = useRef();
+const BarChart = ({ data, title }) => {
+  const barSvgRef = useRef();
   const tooltipRef = useRef();
   const [waterType, setWaterType] = useState("usage");
   const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
@@ -46,10 +44,10 @@ const BarChart = ({ data, title, isOpen, onClose }) => {
 
   // Compute unique variables from the raw water data.
   const uniqueVariables = useMemo(() => {
-    if (!data || !data.barData) return { "usage": [], "resource": [] };
+    if (!data || !data.waterData) return { "usage": [], "resource": [] };
     const usageSet = new Set();
     const resourceSet = new Set();
-    data.barData.forEach(d => {
+    data.waterData.forEach(d => {
       if (d.type === "usage" && d.Variable) usageSet.add(d.Variable);
       if (d.type === "resource" && d.Variable) resourceSet.add(d.Variable);
     });
@@ -66,32 +64,40 @@ const BarChart = ({ data, title, isOpen, onClose }) => {
 
   // The main chart drawing function.
   const drawChart = useCallback(() => {
-    if (!svgRef.current || !data) return;
+    if (!barSvgRef.current || !data) return;
 
-    const { barData, popuData } = data;
-    const filteredBarData = barData.filter((d) => d.type === waterType);
+    const { waterData, popuData } = data;
+    const filteredBarData = waterData.filter((d) => d.type === waterType);
     let water_data = groupWaterDataByYear(filteredBarData);
 
-    // Remove any existing SVG content.
-    d3.select(svgRef.current).selectAll("*").remove();
+    // Get responsive dimensions
+    if (!barSvgRef.current._dimensions) {
+      const containerElement = barSvgRef.current.parentNode;
+      const containerWidth = containerElement.clientWidth || 350;
+      const containerHeight = containerElement.clientHeight || 250;
+      const margin = { top: 60, right: 0, bottom: 35, left: 0 };
+      barSvgRef.current._dimensions = {
+        containerWidth,
+        containerHeight,
+        margin,
+        width: containerWidth - margin.left - margin.right,
+        height: containerHeight - margin.top - margin.bottom,
+      };
+    }
+    const { containerWidth, containerHeight, margin, width, height } = barSvgRef.current._dimensions;
 
-    // Get responsive dimensions from the container.
-    const containerElement = svgRef.current.parentNode;
-    const containerWidth = containerElement.clientWidth || 550;
-    const containerHeight = containerElement.clientHeight || 300;
-    const margin = { top: 80, right: 60, bottom: 80, left: 60 };
-    const width = containerWidth - margin.left - margin.right;
-    const height = containerHeight - margin.top - margin.bottom;
+    // Clear any existing SVG content
+    d3.select(barSvgRef.current).selectAll("*").remove();
 
-    // Set up the responsive SVG.
+    // Set up the responsive SVG
     const svg = d3
-      .select(svgRef.current)
+      .select(barSvgRef.current)
       .attr("width", "100%")
       .attr("height", "100%")
       .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
       .attr("preserveAspectRatio", "xMidYMid meet")
       .append("g")
-      .attr("transform", `translate(${margin.left},${margin.top})`);
+      .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     // Add Chart Title.
     svg
@@ -367,12 +373,11 @@ const BarChart = ({ data, title, isOpen, onClose }) => {
 
   }, [data, waterType, minMaxYear, selectedVariable]);
 
-  // Redraw chart on modal open or when dependencies change.
   useEffect(() => {
-    if (isOpen) {
+    if (data && data.waterData && data.popuData) {
       drawChart();
     }
-  }, [isOpen, drawChart]);
+  }, [drawChart]);
 
   // Redraw chart on window resize.
   useEffect(() => {
@@ -381,39 +386,15 @@ const BarChart = ({ data, title, isOpen, onClose }) => {
   }, [drawChart]);
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onAfterOpen={drawChart}
-      onRequestClose={onClose}
-      contentLabel="Bar Chart Modal"
-      style={{
-        content: {
-          top: "50%",
-          left: "50%",
-          marginRight: "-50%",
-          transform: "translate(-50%, -50%)",
-          background: "#fff",
-          border: "1px solid #ccc",
-          borderRadius: "5px",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-          padding: "10px",
-          width: "750px",
-          height: "450px",
-          overflow: "hidden",
-        },
-        overlay: {
-          backgroundColor: "rgba(0, 0, 0, 0.75)",
-          display: "flex",
-          justifyContent: "center",
-          alignItems: "center",
-        },
-      }}
-    >
-      <div className="bar-chart-container">
-        <button onClick={onClose} className="bar-chart-close-button">
-          &times;
-        </button>
-        {/* Chart Controls */}
+    <div className="chart-container" style={{ flexDirection: "row-reverse" }}>
+      <div className="chart-description">
+        <h2>{title}</h2>
+        <p> the line chart is bla bla </p>
+        <p> the line chart is bla bla </p>
+        <p> the line chart is bla bla </p>
+        <p> the line chart is bla bla </p>
+      </div>
+      <div className="chart-figure">
         <div className="chart-controls">
           <div className="water-type-switch">
             <button
@@ -446,13 +427,13 @@ const BarChart = ({ data, title, isOpen, onClose }) => {
             </select>
           </div>
         </div>
-        <svg ref={svgRef} className="chart-svg"></svg>
+        <svg ref={barSvgRef} className="chart-svg"></svg>
         <div ref={tooltipRef} className="chart-tooltip" />
         <div className="double-slider-container">
           <DoubleSlider min={1967} max={2021} onChange={handleMinMaxYearChange} />
         </div>
       </div>
-    </Modal>
+    </div >
   );
 };
 

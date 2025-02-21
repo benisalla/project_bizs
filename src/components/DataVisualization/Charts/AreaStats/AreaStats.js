@@ -1,159 +1,115 @@
+import { useState } from 'react';
+import './AreaStats.css';
 import React from 'react';
-import Modal from 'react-modal';
-import './AreaStats.css'; 
-import { computeNumericStats } from '../../../APIs/DataUtils';
+import * as d3 from 'd3';
+import DistributionChart from './DistributionChart';
+import TreeMapChart from '../TreeMapChart/TreeMapChart';
 
-Modal.setAppElement('#root');
 
-const modalStyles = {
-    content: {
-        top: '50%',
-        left: '50%',
-        right: 'auto',
-        bottom: 'auto',
-        marginRight: '-50%',
-        transform: 'translate(-50%, -50%)',
-        background: '#f4f4f9',
-        border: '1px solid #d3d3d5',
-        borderRadius: '12px',
-        padding: '2px',
-        width: '60vw',   
-        maxWidth: '800px',
-        height: '70vh',   
-        maxHeight: '90vh',
-        overflowY: 'auto',
-        boxShadow: '0 4px 6px rgba(0, 0, 0, 0.1)',
-        fontFamily: "'Helvetica Neue', Helvetica, Arial, sans-serif",
-        color: '#333',
-    },
-    overlay: {
-        backgroundColor: 'rgba(0, 0, 0, 0.75)',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-};
+const AreaStats = ({ data }) => {
+    const [waterType, setWaterType] = useState("usage");
 
-const AreaStats = ({ isOpen, onClose, areaData, title }) => {
-    // Separate data by type
-    const resourceData = areaData.filter(row => row.type === 'resource');
-    const usageData = areaData.filter(row => row.type === 'usage');
 
-    // Compute stats for each
-    const resourceStats = computeNumericStats(resourceData);
-    const usageStats = computeNumericStats(usageData);
+    if (!data || !data.popuData || !data.waterData) {
+        return <p>No data found for the selected country.</p>;
+    }
 
-    // Helper to render variable distribution for pie charts
-    const renderPieDistribution = (percentages) => {
-        if (!percentages || percentages.length === 0) {
-            return <p>No variable distribution found.</p>;
+    const { waterData, popuData, tempData } = data;
+
+    // Separate waterData into usage and resource (ensure your data uses these type labels)
+    const waterUsage = waterData.filter((row) => row.type === "usage");
+    const waterResource = waterData.filter((row) => row.type === "resource");
+
+    // Grab all numeric keys from the first object (for population data).
+    const validYears = Object.keys(popuData[0])
+        .filter((k) => !isNaN(k))
+        .sort((a, b) => +a - +b);
+
+    // Create a dictionary of year: value, skipping any undefined or NaN values.
+    const popuDict = validYears.reduce((acc, year) => {
+        const value = +popuData[0][year];
+        if (!isNaN(value)) {
+            acc[year] = value;
         }
-        return (
-            <ul>
-                {percentages.map(({ variable, percentage }) => (
-                    <li key={variable}>
-                        <span>{variable}</span>
-                        <span>{percentage.toFixed(2)}%</span>
-                    </li>
-                ))}
-            </ul>
-        );
-    };
+        return acc;
+    }, {});
+
+    // Create a dictionary of year: value, skipping any undefined or NaN values.
+    const tempDict = validYears.reduce((acc, year) => {
+        const value = +tempData[0][year];
+        if (!isNaN(value)) {
+            acc[year] = value;
+        }
+        return acc;
+    }, {});
+
+    // Additional population and temperature data processing can go here.
+    const popuValues = Object.values(popuDict);
+    const tempValues = Object.values(tempDict);
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onRequestClose={onClose}
-            contentLabel={title}
-            style={modalStyles}
-        >
-            <button className="closeButton" onClick={onClose}>
-                &times;
-            </button>
-            
-            <div className="modalContentContainer">
-                {/* Modal title */}
-                <h2 className="modalHeading">{title}</h2>
+        <div className="AreaStats">
 
-                {/* RESOURCE STATS */}
-                <div className="statsSection">
-                    <h3>Resource Data</h3>
-                    {resourceStats ? (
-                        <>
-                            <ul>
-                                <li>
-                                    <strong>Records:</strong> {resourceStats.count}
-                                </li>
-                                <li>
-                                    <strong>Total Value:</strong>{' '}
-                                    {resourceStats.total?.toFixed
-                                        ? resourceStats.total.toFixed(2)
-                                        : resourceStats.total}
-                                </li>
-                                <li>
-                                    <strong>Average Value:</strong>{' '}
-                                    {resourceStats.average?.toFixed
-                                        ? resourceStats.average.toFixed(2)
-                                        : resourceStats.average}
-                                </li>
-                                <li>
-                                    <strong>Minimum Value:</strong> {resourceStats.min}
-                                </li>
-                                <li>
-                                    <strong>Maximum Value:</strong> {resourceStats.max}
-                                </li>
-                            </ul>
+            {/* POPULATION STATS */}
+            {popuValues && popuValues.length > 0 ? (
+                <section className="population-stats">
+                    <h2>Population Stats</h2>
+                    <div className="popu-chart-container">
+                        <DistributionChart data={popuDict} title="Population Distribution Over The Years" />
+                        <div className="popu-stats">
+                            <p><strong>Mean:</strong> {d3.mean(popuValues).toFixed(2)}</p>
+                            <p><strong>Median:</strong> {d3.median(popuValues).toFixed(2)}</p>
+                            <p><strong>Standard Deviation:</strong> {d3.deviation(popuValues).toFixed(2)}</p>
+                            <p><strong>Min:</strong> {d3.min(popuValues).toFixed(2)}</p>
+                            <p><strong>Max:</strong> {d3.max(popuValues).toFixed(2)}</p>
+                            <p>
+                                <strong>25th Percentile:</strong>{" "}
+                                {d3.quantile([...popuValues].sort((a, b) => a - b), 0.25).toFixed(2)}
+                            </p>
+                            <p>
+                                <strong>75th Percentile:</strong>{" "}
+                                {d3.quantile([...popuValues].sort((a, b) => a - b), 0.75).toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            ) : (
+                <section className="population-stats">
+                    <h2>Population Stats</h2>
+                    <p>No population data available.</p>
+                </section>
+            )}
 
-                            <div className="distributionContainer">
-                                <h4>Distribution by Variable (Pie Chart)</h4>
-                                {renderPieDistribution(resourceStats.variablePercentages)}
-                            </div>
-                        </>
-                    ) : (
-                        <p>No resource data available.</p>
-                    )}
-                </div>
-
-                {/* USAGE STATS */}
-                <div className="statsSection">
-                    <h3>Usage Data</h3>
-                    {usageStats ? (
-                        <>
-                            <ul>
-                                <li>
-                                    <strong>Records:</strong> {usageStats.count}
-                                </li>
-                                <li>
-                                    <strong>Total Value:</strong>{' '}
-                                    {usageStats.total?.toFixed
-                                        ? usageStats.total.toFixed(2)
-                                        : usageStats.total}
-                                </li>
-                                <li>
-                                    <strong>Average Value:</strong>{' '}
-                                    {usageStats.average?.toFixed
-                                        ? usageStats.average.toFixed(2)
-                                        : usageStats.average}
-                                </li>
-                                <li>
-                                    <strong>Minimum Value:</strong> {usageStats.min}
-                                </li>
-                                <li>
-                                    <strong>Maximum Value:</strong> {usageStats.max}
-                                </li>
-                            </ul>
-
-                            <div className="distributionContainer">
-                                <h4>Distribution by Variable (Pie Chart)</h4>
-                                {renderPieDistribution(usageStats.variablePercentages)}
-                            </div>
-                        </>
-                    ) : (
-                        <p>No usage data available.</p>
-                    )}
-                </div>
-            </div>
-        </Modal>
+            {/* TEMPERATURE STATS */}
+            {tempValues && tempValues.length > 0 ? (
+                <section className="population-stats">
+                    <h2>Temperature Stats</h2>
+                    <div className="popu-chart-container">
+                        <DistributionChart data={tempValues} title="Population Distribution Over The Years" />
+                        <div className="popu-stats">
+                            <p><strong>Mean:</strong> {d3.mean(tempValues).toFixed(2)}</p>
+                            <p><strong>Median:</strong> {d3.median(tempValues).toFixed(2)}</p>
+                            <p><strong>Standard Deviation:</strong> {d3.deviation(tempValues).toFixed(2)}</p>
+                            <p><strong>Min:</strong> {d3.min(tempValues).toFixed(2)}</p>
+                            <p><strong>Max:</strong> {d3.max(tempValues).toFixed(2)}</p>
+                            <p>
+                                <strong>25th Percentile:</strong>{" "}
+                                {d3.quantile([...tempValues].sort((a, b) => a - b), 0.25).toFixed(2)}
+                            </p>
+                            <p>
+                                <strong>75th Percentile:</strong>{" "}
+                                {d3.quantile([...tempValues].sort((a, b) => a - b), 0.75).toFixed(2)}
+                            </p>
+                        </div>
+                    </div>
+                </section>
+            ) : (
+                <section className="population-stats">
+                    <h2>Temperature Stats</h2>
+                    <p>No temperature data available.</p>
+                </section>
+            )}
+        </div>
     );
 };
 
