@@ -1,10 +1,7 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import * as d3 from "d3";
-import Modal from "react-modal";
 import "./ScatterChart.css";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
-
-Modal.setAppElement("#root");
 
 // A tooltip helper function for the scatter chart.
 const getScatterTooltipHtml = (d) => {
@@ -17,8 +14,8 @@ const getScatterTooltipHtml = (d) => {
   `;
 };
 
-const ScatterChart = ({ data, title, isOpen, onClose }) => {
-    const svgRef = useRef();
+const ScatterChart = ({ data, title }) => {
+    const scatterSvgRef = useRef();
     const tooltipRef = useRef();
 
     // We allow toggling water type (usage or resource) similar to the BarChart.
@@ -26,19 +23,16 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
     const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
 
     const drawChart = useCallback(() => {
-        if (!svgRef.current || !data || !data.scatterData || !data.popuData) {
+        if (!scatterSvgRef.current || !data || !data.waterData || !data.popuData) {
             console.error("Missing required data properties.");
             return;
         }
 
         // Destructure the water and population data.
-        const { scatterData, popuData } = data;
-
-        console.log("Water Data for Scatter Chart:", scatterData);
-        console.log("Population Data for Scatter Chart:", popuData);
+        const { waterData, popuData } = data;
 
         // Filter water data by the selected water type and year range.
-        const filteredWaterData = scatterData
+        const filteredWaterData = waterData
             .filter(d => d.type === waterType)
             .filter(d => +d.Year >= minMaxYear[0] && +d.Year <= minMaxYear[1]);
 
@@ -49,7 +43,6 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
             .filter(d => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]);
 
         // Merge water and population data by year.
-        // For each year in the population array, find a corresponding water measurement.
         const mergedData = popArray.map(p => {
             const waterItem = filteredWaterData.find(w => +w.Year === p.Year);
             return waterItem
@@ -65,19 +58,28 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
 
         console.log("Merged Data for Scatter Chart:", mergedData);
 
-        // Get responsive dimensions from the container.
-        const container = svgRef.current.parentNode;
-        const containerWidth = container.clientWidth || 750;
-        const containerHeight = container.clientHeight || 450;
-        const margin = { top: 80, right: 60, bottom: 80, left: 60 };
-        const width = containerWidth - margin.left - margin.right;
-        const height = containerHeight - margin.top - margin.bottom;
+        // Get responsive dimensions
+        if (!scatterSvgRef.current._dimensions) {
+            const containerElement = scatterSvgRef.current.parentNode;
+            const containerWidth = containerElement.clientWidth || 350;
+            const containerHeight = containerElement.clientHeight || 250;
+            const margin = { top: 60, right: 0, bottom: 35, left: 0 };
+            scatterSvgRef.current._dimensions = {
+                containerWidth,
+                containerHeight,
+                margin,
+                width: containerWidth - margin.left - margin.right,
+                height: containerHeight - margin.top - margin.bottom,
+            };
+        }
+        const { containerWidth, containerHeight, margin, width, height } = scatterSvgRef.current._dimensions;
 
-        // Clear any previous SVG content.
-        d3.select(svgRef.current).selectAll("*").remove();
+        // Clear any existing SVG content
+        d3.select(scatterSvgRef.current).selectAll("*").remove();
 
-        // Set up the responsive SVG.
-        const svg = d3.select(svgRef.current)
+        // Set up the responsive SVG
+        const svg = d3
+            .select(scatterSvgRef.current)
             .attr("width", "100%")
             .attr("height", "100%")
             .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
@@ -178,12 +180,11 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
             .text(d => d.name);
     }, [data, waterType, minMaxYear]);
 
-    // Redraw the chart when modal opens or dependencies change.
     useEffect(() => {
-        if (isOpen) {
+        if (data && data.waterData && data.popuData) {
             drawChart();
         }
-    }, [isOpen, drawChart]);
+    }, [drawChart]);
 
     // Redraw on window resize.
     useEffect(() => {
@@ -197,39 +198,17 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onAfterOpen={drawChart}
-            onRequestClose={onClose}
-            contentLabel="Scatter Chart Modal"
-            style={{
-                content: {
-                    top: "50%",
-                    left: "50%",
-                    marginRight: "-50%",
-                    transform: "translate(-50%, -50%)",
-                    background: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: "5px",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                    padding: "10px",
-                    width: "750px",
-                    height: "450px",
-                    overflow: "hidden",
-                },
-                overlay: {
-                    backgroundColor: "rgba(0, 0, 0, 0.75)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                },
-            }}
-        >
-            <div className="bar-chart-container">
-                <button onClick={onClose} className="bar-chart-close-button">
-                    &times;
-                </button>
-                {/* Chart Controls */}
+        <div className="chart-container">
+
+            <div className="chart-description">
+                <h2>{title}</h2>
+                <p> the line chart is bla bla </p>
+                <p> the line chart is bla bla </p>
+                <p> the line chart is bla bla </p>
+                <p> the line chart is bla bla </p>
+            </div>
+            <div className="chart-figure">
+
                 <div className="chart-controls">
                     <div className="water-type-switch">
                         <button
@@ -241,18 +220,16 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
                         <button
                             className={`water-type-btn ${waterType === "resource" ? "active" : ""}`}
                             onClick={() => setWaterType("resource")}
-                        >
-                            R
-                        </button>
+                        >R</button>
                     </div>
                 </div>
-                <svg ref={svgRef} className="chart-svg"></svg>
+                <svg ref={scatterSvgRef} className="chart-svg"></svg>
                 <div ref={tooltipRef} className="chart-tooltip" />
                 <div className="double-slider-container">
                     <DoubleSlider min={1967} max={2021} onChange={handleMinMaxYearChange} />
                 </div>
             </div>
-        </Modal>
+        </div>
     );
 };
 

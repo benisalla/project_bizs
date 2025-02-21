@@ -10,7 +10,7 @@ const NavBar = () => {
     buttonRefs.current = [];
 
     // Set initial selectedIndex based on the current route
-    const routes = ['/', '/about-us', '/data-visualization', '/test-page'];
+    const routes = ['/', '/about-us', '/data-visualization'];
     const initialIndex = routes.findIndex(route => route === location.pathname);
     const [selectedIndex, setSelectedIndex] = useState(initialIndex >= 0 ? initialIndex : 0);
 
@@ -61,14 +61,6 @@ const NavBar = () => {
                 onClick={() => navigateTo(2, '/data-visualization')}
             >
                 Data Visualization
-            </button>
-
-            <button
-                className={`nav-button ${selectedIndex === 3 ? 'active' : ''}`}
-                ref={addToRefs}
-                onClick={() => navigateTo(3, '/test-page')}
-            >
-                Test Page
             </button>
         </nav>
     );

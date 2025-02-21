@@ -13,6 +13,7 @@ const water_data_path = process.env.PUBLIC_URL + "/assets/dataset/water_use_rsc_
 const population_data_path = process.env.PUBLIC_URL + "/assets/dataset/population.csv";
 const map_countries_names_path = process.env.PUBLIC_URL + "/assets/dataset/map-country-names.json";
 const map_code_country_path = process.env.PUBLIC_URL + "/assets/dataset/map-code-country.json";
+const temp_data_path = process.env.PUBLIC_URL + "/assets/dataset/temperature.csv";
 
 
 const loadGeoJSON = async (filePath) => {
@@ -41,7 +42,7 @@ const DataVisualization = () => {
   const [roundGeoJson, setRoundGeoJson] = useState({});
   const [waterData, setWaterData] = useState([]);
   const [populationData, setPopulationData] = useState([]);
-  // const [temperatureData, setTemperatureData] = useState([]);
+  const [temperatureData, setTemperatureData] = useState([]);
 
   useEffect(() => {
     fetch(map_countries_names_path)
@@ -85,8 +86,9 @@ const DataVisualization = () => {
       d3.json(flat_countries_path),
       d3.csv(water_data_path),
       d3.csv(population_data_path),
+      d3.csv(temp_data_path)
     ]).then(values => {
-      const [roundJson, flatJson, waterCsv, popuCsv] = values;
+      const [roundJson, flatJson, waterCsv, popuCsv, tempCsv] = values;
 
       if (!roundJson || !roundJson.features || !flatJson || !flatJson.objects) {
         console.error("Failed to load or parse GeoJSON data");
@@ -118,10 +120,42 @@ const DataVisualization = () => {
         }
       });
 
+      // we want popu data to be a dictionary of country code with value as dict of year: value
+      const new_popu_data = {};
+      popuCsv.forEach(d => {
+        const countryCode = d["Country Code"];
+        if (!new_popu_data[countryCode]) {
+          new_popu_data[countryCode] = {};
+        }
+        for (let year = 1967; year <= 2021; year++) {
+          new_popu_data[countryCode][year] = +d[year] || 0;
+        }
+      });
+
       // Unify country names in round GeoJSON using state mapping
       const new_roundJson = roundJson;
       new_roundJson.features.forEach(feature => {
         feature.properties.UnifiedName = country2CodeMapping[feature.properties.name];
+      });
+
+      // get just meteorological year data in the desired format
+      const filteredTempData = tempCsv
+        .filter(d => d.Months === "Meteorological year")
+        .reduce((acc, d) => {
+          const unifiedName =  d["Area Code (ISO3)"];
+          if (!unifiedName) return acc;
+          const year = +d.Year;
+          const value = +d.Value || 0;
+          if (!acc[unifiedName]) {
+            acc[unifiedName] = {};
+          }
+          acc[unifiedName][year] = value;
+          return acc;
+        }, {});
+
+      // Add average temperature data to round GeoJSON
+      new_roundJson.features.forEach(feature => {
+        feature.properties.avg_temp = filteredTempData[feature.properties.UnifiedName] || {};
       });
 
       // Process flat GeoJSON similarly
@@ -138,10 +172,15 @@ const DataVisualization = () => {
         feature.properties.waterQTbyYear = countryWaterSum[feature.properties.UnifiedName] || 0;
       });
 
-      setRoundGeoJson(new_roundJson);
-      setFlatGeoJson(new_flatJson);
+      setRoundGeoJson(() => new_roundJson);
+      setFlatGeoJson(() => new_flatJson);
       setWaterData(() => waterCsv);
-      setPopulationData(() => popuCsv);
+      setPopulationData(() => new_popu_data);
+      setTemperatureData(() => filteredTempData);
+
+      console.log("Data loaded successfully");
+      console.log("temperatureData", filteredTempData);
+      console.log("populationData", new_popu_data);
 
       hideLoader();
     });
@@ -150,10 +189,10 @@ const DataVisualization = () => {
 
   useEffect(() => {
     if (!roundGeoJson || !flatGeoJson || waterData.length === 0 || populationData.length === 0) {
-      setIsLoading(true);
+      setIsLoading(() => true);
       showLoader();
     } else {
-      setIsLoading(false);
+      setIsLoading(() => false);
       hideLoader();
     }
   }, [roundGeoJson, flatGeoJson, waterData, populationData]);
@@ -163,27 +202,26 @@ const DataVisualization = () => {
   }
 
   return (
-    <div className="data-vis-page">
-      <main className="page-content">
-        {selectedCountry ? (
-          <CountryDetails
-            countryUnifiedName={selectedCountry}
-            code2CountryMapping={code2CountryMapping}
-            waterData={waterData}
-            populationData={populationData}
-            onBack={() => setSelectedCountry(null)}
-          />
-        ) : (
-          <MapChart
-            flatGeoJson={flatGeoJson}
-            roundGeoJson={roundGeoJson}
-            waterData={waterData}
-            populationData={populationData}
-            // temperatureData={[]}
-            onCountryClick={setSelectedCountry}
-          />
-        )}
-      </main>
+    <div className="data-vis-container">
+      {selectedCountry ? (
+        <CountryDetails
+          curr_country_code={selectedCountry}
+          code2CountryMapping={code2CountryMapping}
+          waterData={waterData}
+          populationData={populationData}
+          temperatureData={temperatureData}
+          onBack={() => setSelectedCountry(null)}
+        />
+      ) : (
+        <MapChart
+          flatGeoJson={flatGeoJson}
+          roundGeoJson={roundGeoJson}
+          waterData={waterData}
+          populationData={populationData}
+          temperatureData={temperatureData}
+          onCountryClick={setSelectedCountry}
+        />
+      )}
     </div>
   );
 };

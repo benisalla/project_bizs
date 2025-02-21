@@ -1,14 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import './RoundMap.css';
-import ChartSelector from '../../Modals/ChartSelector';
-import LineChart from '../LineChart/LineChart';
-import AreaStats from '../AreaStats/AreaStats';
-import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
-import BarChart from '../BarChart/BarChart';
 
 
-const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
+const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
   const svgRef = useRef();
   const tooltipRef = useRef();
   const baseScaleRef = useRef(null);
@@ -16,25 +11,6 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
   const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [zoomScale, setZoomScale] = useState(1);
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [lineData, setLineData] = useState({
-    lineData: [],
-    popuData: [],
-  });
-  const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
-  const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
-  const [selectedChart, setSelectedChart] = useState(null);
-  const [areaStatsData, setAreaStatsData] = useState([]);
-  const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
-  const [barData, setBarData] = useState({
-    barData: [],
-    popuData: [],
-  });
-  const [isBarChartOpen, setIsBarChartOpen] = useState(false);
-  const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
-  const [filteredDataByYear, setFilteredDataByYear] = useState([]);
-  const [filteredDataByCountryAndYear, setFilteredDataByCountryAndYear] = useState([]);
 
   function getSimpleStatsTooltip(feature, waterData) {
     const { formal_en, UnifiedName } = feature.properties;
@@ -194,7 +170,7 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
         })
         .on('mousedown', (e, d) => {
           e.stopPropagation();
-          setSelectedCountry(d.properties.UnifiedName);
+          onCountryClick(d.properties.UnifiedName);
           console.log("Selected country:", d.properties.UnifiedName);
         })
 
@@ -274,109 +250,12 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   ]);
 
 
-  // ==============================================
-  //           Use Effects for Chart Selection
-  // ==============================================
-  useEffect(() => {
-    if (selectedCountry && waterData.length > 0) {
-      setIsChartSelectorOpen(true);
-    }
-  }, [selectedCountry]);
-
-
-  // ==============================================
-  //           Use Effects for Chart Selection
-  // ==============================================
-  useEffect(() => {
-    if (selectedChart === 'LineChart') {
-      const lineData = filterWaterDataByCountry(selectedCountry, waterData);
-      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setLineData({ lineData, popuData });
-      setIsLineChartOpen(true);
-      setSelectedChart(null);
-    }
-
-    if (selectedChart === 'ScatterChart') {
-      setIsScatterChartOpen(true);
-      setSelectedChart(null);
-    }
-
-    if (selectedChart === 'AreaStats') {
-      const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
-      setAreaStatsData(area_stats_data);
-      setIsAreaStatsOpen(true);
-      setSelectedChart(null);
-    }
-
-    if (selectedChart === 'BarChart') {
-      const barData = filterWaterDataByCountry(selectedCountry, waterData);
-      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setBarData({ barData, popuData });
-      setIsBarChartOpen(true);
-      setSelectedChart(null);
-    }
-  }, [selectedChart]);
-
-
-  // ==============================================
-  //          Handlers for Chart Selector
-  // ==============================================
-  const handleSelectChart = (chartType) => {
-    setSelectedChart(chartType);
-    setIsChartSelectorOpen(false);
-  };
-
-
   return (
     <>
       <div className="roundmap-container">
         <svg ref={svgRef}></svg>
         <div ref={tooltipRef} className="map-tooltip"></div>
       </div>
-
-      {/* here we select the chart we want */}
-      <ChartSelector
-        isOpen={isChartSelectorOpen}
-        onClose={() => {
-          setIsChartSelectorOpen(false);
-          setSelectedCountry(null);
-        }}
-        onSelect={handleSelectChart}
-      />
-
-      {/* line chart */}
-      <LineChart
-        title={`Line Chart of ${selectedCountry}`}
-        data={lineData}
-        isOpen={isLineChartOpen}
-        onClose={() => {
-          setIsLineChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Bar Chart */}
-      <BarChart
-        data={barData}
-        title={`Bar Chart of ${selectedCountry}`}
-        isOpen={isBarChartOpen}
-        onClose={() => {
-          setIsBarChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Area Stats */}
-      <AreaStats
-        isOpen={isAreaStatsOpen}
-        onClose={() => {
-          setIsAreaStatsOpen(false);
-          setSelectedCountry(null);
-        }}
-        areaData={areaStatsData}
-        title={`${selectedCountry} Statistics`}
-      />
-
     </>
   );
 };

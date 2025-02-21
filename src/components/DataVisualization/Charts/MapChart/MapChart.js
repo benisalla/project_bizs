@@ -3,25 +3,38 @@ import FlatMap from './FlatMap';
 import RoundMap from './RoundMap';
 import './MapChart.css';
 import { useLoader } from '../../../APIs/Reducer';
-import { filter } from 'd3';
 
-const MapChart = (
-    {
-        onCountryClick,
-        roundGeoJson,
-        flatGeoJson,
-        waterData,
-        populationData,
-        // temperatureData
-    }) => {
+const MapChart = ({
+    onCountryClick,
+    roundGeoJson,
+    flatGeoJson,
+    waterData,
+    populationData,
+    temperatureData }) => {
 
     const { showLoader, hideLoader } = useLoader();
     const [flatMap, setFlatMap] = useState(true);
     const [selectedYear, setSelectedYear] = useState(2000);
     const [filteredWaterData, setFilteredWaterData] = useState([]);
+    const [filteredPopuData, setFilteredPopuData] = useState([]);
+    const [filteredTempData, setFilteredTempData] = useState([]);
 
     useEffect(() => {
         setFilteredWaterData(waterData.filter(d => d.Year == selectedYear));
+        setFilteredPopuData(
+            Object.entries(populationData).map(([UnifiedName, data]) => ({
+                UnifiedName,
+                value: data[selectedYear],
+            }))
+        );
+
+        setFilteredTempData(
+            Object.entries(temperatureData).map(([UnifiedName, data]) => ({
+                UnifiedName,
+                value: data[selectedYear],
+            }))
+        );
+
     }, [selectedYear]);
 
     const handleYearSelection = (e) => {
@@ -80,14 +93,14 @@ const MapChart = (
                     <FlatMap
                         flatGeoJson={flatGeoJson}
                         waterData={filteredWaterData}
-                        populationData={populationData}
-                        // temperatureData={filteredTemperatureData}
+                        populationData={filteredPopuData}
+                        temperatureData={filteredTempData}
                         onCountryClick={onCountryClick} /> :
                     <RoundMap
                         roundGeoJson={roundGeoJson}
                         waterData={filteredWaterData}
-                        populationData={populationData}
-                        // temperatureData={filteredTemperatureData}
+                        populationData={filteredPopuData}
+                        temperatureData={filteredTempData}
                         onCountryClick={onCountryClick} />
             )}
 
