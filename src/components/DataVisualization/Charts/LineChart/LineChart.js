@@ -480,31 +480,6 @@ const LineChart = ({ data }) => {
                 <p> the line chart is bla bla </p>
             </div>
             <div className="chart-figure">
-                {/* <div className="chart-controls">
-                    <div className="line-toggle-buttons">
-                        <button
-                            className={`water-type-btn ${showUsage ? "active" : ""}`}
-                            onClick={() => setShowUsage(true)}
-                        >U</button>
-                        <button
-                            className={`water-type-btn ${!showUsage ? "active" : ""}`}
-                            onClick={() => setShowUsage(false)}
-                        >R</button>
-                    </div>
-                    <div className="line-toggle-buttons">
-                        <button
-                            className={`temp-popu-type-btn ${showPopulation ? "active" : ""}`}
-                            onClick={() => setShowPopulation(true)}
-                        >P</button>
-                        <button
-                            className={`temp-popu-type-btn ${!showPopulation ? "active" : ""}`}
-                            onClick={() => setShowPopulation(false)}
-                        >T</button>
-                    </div>
-                </div> */}
-
-
-
                 <div className="chart-controls">
                     <div className="line-toggle-buttons">
                         <button
