@@ -1,32 +1,55 @@
 /* Main container styling */
 .country-details-container {
-  margin: 30px auto;
-  padding: 20px;
-  background: #ffffff;
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  margin: 0 auto;
+  max-width: 1200px;
+  /* background: #ffffff; */
+  /* border-radius: 10px; */
+  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 /* Back button */
 .back-button-container {
-  margin-bottom: 20px;
+  margin-top: 20px;
+  margin-bottom: 10px;
+  border-radius: 20px;
+  padding: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: start;
+  align-items: center;
+  gap: 10px;
 }
 
-.back-button {
+.back-button,
+.pdf-button {
   background-color: #f44336;
   color: #fff;
   border: none;
-  padding: 10px 20px;
-  border-radius: 5px;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
   cursor: pointer;
   font-size: 16px;
   font-weight: 500;
-  transition: background 0.3s ease, transform 0.2s ease;
+  justify-content: center;
+  align-items: center;
+  display: flex;
+  transition: background 0.3sease, transform 0.2sease;
 }
 
-.back-button:hover {
+.back-button:hover{
   background-color: #d32f2f;
+  transform: translateY(-2px);
+}
+
+.pdf-button {
+  background-color: #4caf50;
+  margin-left: 10px;
+}
+
+.pdf-button:hover {
+  background-color: #388e3c;
   transform: translateY(-2px);
 }
 
@@ -43,7 +66,7 @@
   border: none;
   border-radius: 8px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* Statistics section (if you decide to use one) */

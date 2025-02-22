@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import "./LineChart.css";
 import { groupWaterDataByYear } from "../../../APIs/DataUtils";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
+import EditableText from "../../../MicroComponents/EditableText";
 
 
 // A tooltip helper function similar to the one in BarChart.
@@ -42,6 +43,18 @@ const LineChart = ({ data }) => {
     const [showPopulation, setShowPopulation] = useState(true);
     const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
     const [title, setTitle] = useState("Line Chart of Water Usage & Population");
+    const [description, setDescription] = useState(
+        `<p>This line chart visualizes the relationship between <span style="color: #007bff;">water usage</span> and <span style="color: #000066;">population growth</span> over time.</p>
+        
+        <p><strong>Insights:</strong></p>
+        <ul>
+            <li>Tracks <span style="color: #007bff;">water consumption trends</span> and their fluctuations.</li>
+            <li>Highlights the steady increase in <span style="color: #000066;">population</span> and its impact on resources.</li>
+            <li>Provides a clear perspective for analyzing sustainability and resource management.</li>
+        </ul>
+        
+        <p><strong>Application:</strong> Useful for researchers, and urban planners to optimize water resource allocation based on demographic changes.</p>`
+    );
 
     const drawChart = useCallback(() => {
         if (!lineSvgRef.current || !data || !data.waterData || !data.popuData) return;
@@ -471,13 +484,15 @@ const LineChart = ({ data }) => {
     };
 
     return (
-        <div className="chart-container">
+        <div id="line-chart" className="chart-container">
             <div className="chart-description">
                 <h2>{title}</h2>
-                <p> the line chart is bla bla </p>
-                <p> the line chart is bla bla </p>
-                <p> the line chart is bla bla </p>
-                <p> the line chart is bla bla </p>
+                <EditableText
+                    initialText={description}
+                    className="chart-description-text"
+                    onChange={(newText) => setDescription(newText)}
+                    tag="div"
+                />
             </div>
             <div className="chart-figure">
                 <div className="chart-controls">
