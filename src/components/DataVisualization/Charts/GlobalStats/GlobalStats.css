@@ -1,0 +1,124 @@
+.global-stats {
+    background-color: #dfe5ef;
+    border-radius: 10px;
+    padding: 2rem;
+    max-width: 1200px;
+    margin: 6px auto;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.global-stats h2 {
+    text-align: center;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+    font-size: 1.8rem;
+}
+
+.subtitle {
+    text-align: center;
+    margin-bottom: 1.5rem;
+    color: #7f8c8d;
+    font-size: 1rem;
+}
+
+.stats-cards {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    justify-content: center;
+}
+
+.stat-card {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    width: 280px;
+    padding: 1rem 1.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.icon-wrapper {
+    font-size: 1.8rem;
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Color themes for water usage stats */
+.highest-icon {
+    background-color: #d1f2eb;
+    color: #16a085;
+}
+
+.lowest-icon {
+    background-color: #f9ebea;
+    color: #c0392b;
+}
+
+.average-icon {
+    background-color: #fcf3cf;
+    color: #f1c40f;
+}
+
+.median-icon {
+    background-color: #e8daef;
+    color: #8e44ad;
+}
+
+.stddev-icon {
+    background-color: #fceeed;
+    color: #d35400;
+}
+
+/* Color themes for global indicators */
+.globe-icon {
+    background-color: #d6eaf8;
+    color: #2980b9;
+}
+
+.population-icon {
+    background-color: #eafaf1;
+    color: #27ae60;
+}
+
+.temp-icon {
+    background-color: #fdebd0;
+    color: #e67e22;
+}
+
+.stat-info h3 {
+    margin: 0;
+    font-size: 1.3rem;
+    color: #2c3e50;
+    line-height: 1.2;
+}
+
+.stat-info .stat-value {
+    font-weight: 500;
+    color: #34495e;
+}
+
+.stat-info p {
+    margin: 0.3rem 0 0;
+    font-size: 0.9rem;
+    color: #7f8c8d;
+}
+
+.loading-message {
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 1rem;
+    margin-top: 2rem;
+}

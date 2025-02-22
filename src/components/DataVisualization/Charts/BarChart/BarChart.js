@@ -3,7 +3,7 @@ import * as d3 from "d3";
 import "./BarChart.css";
 import { groupWaterDataByYear } from "../../../APIs/DataUtils";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
-
+import EditableText from "../../../MicroComponents/EditableText";
 
 const getTooltipHtml = (type, d, extra = {}) => {
   switch (type) {
@@ -29,22 +29,44 @@ const getTooltipHtml = (type, d, extra = {}) => {
           <strong>Population:</strong> ${d.Population} habitants
         </div>
       `;
+    case "temp":
+      return `
+        <div class="tooltip-content">
+          <strong>Year:</strong> ${d.Year}<br/>
+          <strong>Temperature:</strong> ${d.Temper} °C
+        </div>
+      `;
     default:
       return "";
   }
 };
 
 
-const BarChart = ({ data, title }) => {
+const BarChart = ({ data }) => {
   const barSvgRef = useRef();
   const tooltipRef = useRef();
   const [waterType, setWaterType] = useState("usage");
   const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
   const [selectedVariable, setSelectedVariable] = useState("AllVariables");
+  const [showPopulation, setShowPopulation] = useState(true);
+  const [title, setTitle] = useState("Bar Chart of Water Usage & Population");
+  const [description, setDescription] = useState(
+    `<p><strong>Overview:</strong> This bar chart illustrates the correlation between <span style="color: #b58900;">water usage</span> and <span style="color: #000066;">population growth</span> over time.</p>
+    
+    <p><strong>Insights:</strong></p>
+    <ul>
+        <li>The <span style="color: #b58900;">bars</span> represent the increasing trend in <strong>water consumption</strong>.</li>
+        <li>The <span style="color: #000066;">line</span> showcases steady <strong>population growth</strong>.</li>
+        <li>Highlights the impact of demographic expansion on resource demand.</li>
+    </ul>
+    
+    <p><strong>Application:</strong> Essential for urban planning, resource optimization, and sustainability analysis.</p>`
+  );
+
 
   // Compute unique variables from the raw water data.
   const uniqueVariables = useMemo(() => {
-    if (!data || !data.waterData) return { "usage": [], "resource": [] };
+    if (!data || !data.waterData) return { usage: [], resource: [] };
     const usageSet = new Set();
     const resourceSet = new Set();
     data.waterData.forEach(d => {
@@ -52,8 +74,8 @@ const BarChart = ({ data, title }) => {
       if (d.type === "resource" && d.Variable) resourceSet.add(d.Variable);
     });
     return {
-      "usage": Array.from(usageSet),
-      "resource": Array.from(resourceSet),
+      usage: Array.from(usageSet),
+      resource: Array.from(resourceSet),
     };
   }, [data]);
 
@@ -62,15 +84,17 @@ const BarChart = ({ data, title }) => {
     setMinMaxYear(min_max);
   };
 
-  // The main chart drawing function.
   const drawChart = useCallback(() => {
     if (!barSvgRef.current || !data) return;
 
-    const { waterData, popuData } = data;
+    setTitle("Bar Chart of Water " + (waterType === "usage" ? "Usage" : "Resource") + " & " + (showPopulation ? "Population" : "Temperature"));
+
+    // Destructure water, population and temperature data.
+    const { waterData = [], popuData = [{}], tempData = [{}] } = data;
     const filteredBarData = waterData.filter((d) => d.type === waterType);
     let water_data = groupWaterDataByYear(filteredBarData);
 
-    // Get responsive dimensions
+    // Get responsive dimensions.
     if (!barSvgRef.current._dimensions) {
       const containerElement = barSvgRef.current.parentNode;
       const containerWidth = containerElement.clientWidth || 350;
@@ -86,10 +110,10 @@ const BarChart = ({ data, title }) => {
     }
     const { containerWidth, containerHeight, margin, width, height } = barSvgRef.current._dimensions;
 
-    // Clear any existing SVG content
+    // Clear any existing SVG content.
     d3.select(barSvgRef.current).selectAll("*").remove();
 
-    // Set up the responsive SVG
+    // Set up the responsive SVG.
     const svg = d3
       .select(barSvgRef.current)
       .attr("width", "100%")
@@ -107,21 +131,31 @@ const BarChart = ({ data, title }) => {
       .attr("text-anchor", "middle")
       .style("font-size", "16px")
       .style("font-weight", "bold")
-      .text(`Consommation d'eau & Population pour ${title} (${waterType})`);
+      .text(`Consommation d'eau & ${showPopulation ? "Population" : "Temperature"} pour ${title} (${waterType})`);
 
     // Data Processing.
     const startYear = 1967;
     const endYear = 2021;
 
     // Process population data.
-    const popArray = Object.entries(popuData[0])
+    const popuDataArray = Object.entries(popuData[0])
       .filter(([key]) => !isNaN(key))
       .map(([year, value]) => ({ Year: +year, Population: +value }))
       .filter((d) => d.Year >= startYear && d.Year <= endYear);
 
+    // Process temperature data.
+    const tempDataArray = Object.entries(tempData[0])
+      .filter(([key]) => !isNaN(key))
+      .map(([year, value]) => ({ Year: +year, Temper: +value }))
+      .filter((d) => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]);
+
     // Build complete list of years.
     const allYears = Array.from(
-      new Set([...water_data.map((d) => d.Year), ...popArray.map((d) => d.Year)])
+      new Set([
+        ...water_data.map((d) => d.Year),
+        ...tempDataArray.map((d) => d.Year),
+        ...popuDataArray.map((d) => d.Year)
+      ])
     ).sort((a, b) => a - b);
 
     const filteredYears = allYears.filter(
@@ -136,9 +170,9 @@ const BarChart = ({ data, title }) => {
       .range([0, width])
       .padding(0.2);
 
-    // CASE 1: "AllVariables" view – display AllVariables variables as stacked bars.
+    // CASE 1: "AllVariables" view – display all variables as stacked bars.
     if (selectedVariable === "AllVariables") {
-      // Use AllVariables keys (except "Year") from filteredWaterData.
+      // Use keys (except "Year" and "TotalValue") from filteredWaterData.
       const variables = Object.keys(filteredWaterData[0]).filter(key => key !== "Year" && key !== "TotalValue");
 
       const stack = d3.stack()
@@ -151,9 +185,19 @@ const BarChart = ({ data, title }) => {
         .domain([0, d3.max(filteredWaterData, d => d3.sum(variables, key => d[key] || 0))])
         .nice()
         .range([height, 0]);
-      const maxPopulation = d3.max(popArray, d => d.Population);
-      const yScalePop = d3.scaleLinear()
+
+      // Create yScale for population.
+      const maxPopulation = d3.max(popuDataArray, d => d.Population);
+      const yScalePopulation = d3.scaleLinear()
         .domain([0, maxPopulation])
+        .nice()
+        .range([height, 0]);
+
+      // Create yScale for temperature.
+      const maxTemperature = d3.max(tempDataArray, d => d.Temper) || 0;
+      const minTemperature = d3.min(tempDataArray, d => d.Temper) || 0;
+      const yScaleTemperature = d3.scaleLinear()
+        .domain([minTemperature, maxTemperature])
         .nice()
         .range([height, 0]);
 
@@ -189,10 +233,11 @@ const BarChart = ({ data, title }) => {
             .html(htmlContent);
           tooltipSel.transition().duration(200).style("opacity", 0.9);
         })
-        .on("mousemove", event => {
+        .on("mousemove", function (event) {
+          const [x, y] = d3.pointer(event, this.parentNode);
           d3.select(tooltipRef.current)
-            .style("top", (event.pageY - 80) + "px")
-            .style("left", (event.pageX - 230) + "px");
+            .style("top", (y + 10) + "px")
+            .style("left", (x + 10) + "px");
         })
         .on("mouseleave", () => {
           d3.select(tooltipRef.current)
@@ -201,64 +246,118 @@ const BarChart = ({ data, title }) => {
             .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
         });
 
-      const linePop = d3.line()
-        .x(d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
-        .y(d => yScalePop(d.Population))
-        .curve(d3.curveMonotoneX);
+      // Draw either the population or temperature line & circles.
+      if (showPopulation) {
+        const linePop = d3.line()
+          .x(d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .y(d => yScalePopulation(d.Population))
+          .curve(d3.curveMonotoneX);
 
-      svg.append("path")
-        .datum(popArray.filter(d => filteredYears.includes(d.Year)))
-        .attr("fill", "none")
-        .attr("stroke", "darkblue")
-        .attr("stroke-width", 2)
-        .attr("d", linePop);
+        svg.append("path")
+          .datum(popuDataArray.filter(d => filteredYears.includes(d.Year)))
+          .attr("fill", "none")
+          .attr("stroke", "darkblue")
+          .attr("stroke-width", 2)
+          .attr("d", linePop);
 
-      svg.selectAll(".popCircle")
-        .data(popArray.filter(d => filteredYears.includes(d.Year)))
-        .enter()
-        .append("circle")
-        .attr("class", "popCircle")
-        .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
-        .attr("cy", d => yScalePop(d.Population))
-        .attr("r", 3)
-        .attr("fill", "darkblue")
-        .on("mouseover", (event, d) => {
-          const tooltipSel = d3.select(tooltipRef.current);
-          const htmlContent = getTooltipHtml("pop", d);
-          tooltipSel.style("visibility", "visible")
-            .html(htmlContent);
-          tooltipSel.transition().duration(200).style("opacity", 0.9);
-        })
-        .on("mousemove", event => {
-          d3.select(tooltipRef.current)
-            .style("top", (event.pageY - 80) + "px")
-            .style("left", (event.pageX - 230) + "px");
-        })
-        .on("mouseleave", () => {
-          d3.select(tooltipRef.current)
-            .transition().duration(200)
-            .style("opacity", 0)
-            .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
-        });
+        svg.selectAll(".popCircle")
+          .data(popuDataArray.filter(d => filteredYears.includes(d.Year)))
+          .enter()
+          .append("circle")
+          .attr("class", "popCircle")
+          .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .attr("cy", d => yScalePopulation(d.Population))
+          .attr("r", 3)
+          .attr("fill", "darkblue")
+          .on("mouseover", (event, d) => {
+            const tooltipSel = d3.select(tooltipRef.current);
+            const htmlContent = getTooltipHtml("pop", d);
+            tooltipSel.style("visibility", "visible")
+              .html(htmlContent);
+            tooltipSel.transition().duration(200).style("opacity", 0.9);
+          })
+          .on("mousemove", function (event) {
+            const [x, y] = d3.pointer(event, this.parentNode);
+            d3.select(tooltipRef.current)
+              .style("top", (y + 10) + "px")
+              .style("left", (x + 10) + "px");
+          })
+          .on("mouseleave", () => {
+            d3.select(tooltipRef.current)
+              .transition().duration(200)
+              .style("opacity", 0)
+              .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
+          });
+      } else {
+        const lineTemp = d3.line()
+          .x(d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .y(d => yScaleTemperature(d.Temper))
+          .curve(d3.curveMonotoneX);
 
-      const xAxisG = svg.append("g")
+        svg.append("path")
+          .datum(tempDataArray.filter(d => filteredYears.includes(d.Year)))
+          .attr("fill", "none")
+          .attr("stroke", "red")
+          .attr("stroke-width", 2)
+          .attr("d", lineTemp);
+
+        svg.selectAll(".tempCircle")
+          .data(tempDataArray.filter(d => filteredYears.includes(d.Year)))
+          .enter()
+          .append("circle")
+          .attr("class", "tempCircle")
+          .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .attr("cy", d => yScaleTemperature(d.Temper))
+          .attr("r", 3)
+          .attr("fill", "red")
+          .on("mouseover", (event, d) => {
+            const tooltipSel = d3.select(tooltipRef.current);
+            const htmlContent = getTooltipHtml("temp", d);
+            tooltipSel.style("visibility", "visible")
+              .html(htmlContent);
+            tooltipSel.transition().duration(200).style("opacity", 0.9);
+          })
+          .on("mousemove", function (event) {
+            const [x, y] = d3.pointer(event, this.parentNode);
+            d3.select(tooltipRef.current)
+              .style("top", (y + 10) + "px")
+              .style("left", (x + 10) + "px");
+          })
+          .on("mouseleave", () => {
+            d3.select(tooltipRef.current)
+              .transition().duration(200)
+              .style("opacity", 0)
+              .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
+          });
+      }
+
+      // Draw the axes.
+      svg.append("g")
         .attr("class", "x-axis")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
-      xAxisG.selectAll("text")
+        .call(d3.axisBottom(xScale).tickFormat(d3.format("d")))
+        .selectAll("text")
         .attr("transform", "rotate(-45)")
         .style("text-anchor", "end");
+
       svg.append("g")
         .attr("class", "y-axis-left")
         .call(d3.axisLeft(yScaleWater));
-      svg.append("g")
-        .attr("class", "y-axis-right")
-        .attr("transform", `translate(${width}, 0)`)
-        .call(d3.axisRight(yScalePop));
+
+      if (showPopulation) {
+        svg.append("g")
+          .attr("class", "y-axis-right")
+          .attr("transform", `translate(${width}, 0)`)
+          .call(d3.axisRight(yScalePopulation));
+      } else {
+        svg.append("g")
+          .attr("class", "y-axis-right")
+          .attr("transform", `translate(${width}, 0)`)
+          .call(d3.axisRight(yScaleTemperature).ticks(20).tickFormat(d3.format(".4f")));
+      }
     }
     // CASE 2: a specific variable selected – use a single bar.
     else {
-      // Use only the selected variable.
       const variables = [selectedVariable];
       const stack = d3.stack()
         .keys(variables)
@@ -270,9 +369,17 @@ const BarChart = ({ data, title }) => {
         .domain([0, d3.max(filteredWaterData, d => d3.sum(variables, key => d[key] || 0))])
         .nice()
         .range([height, 0]);
-      const maxPopulation = d3.max(popArray, d => d.Population);
-      const yScalePop = d3.scaleLinear()
+
+      const maxPopulation = d3.max(popuDataArray, d => d.Population);
+      const yScalePopulation = d3.scaleLinear()
         .domain([0, maxPopulation])
+        .nice()
+        .range([height, 0]);
+
+      const maxTemperature = d3.max(tempDataArray, d => d.Temper) || 0;
+      const minTemperature = d3.min(tempDataArray, d => d.Temper) || 0;
+      const yScaleTemperature = d3.scaleLinear()
+        .domain([minTemperature, maxTemperature])
         .nice()
         .range([height, 0]);
 
@@ -303,10 +410,11 @@ const BarChart = ({ data, title }) => {
             .html(htmlContent);
           tooltipSel.transition().duration(200).style("opacity", 0.9);
         })
-        .on("mousemove", event => {
+        .on("mousemove", function (event) {
+          const [x, y] = d3.pointer(event, this.parentNode);
           d3.select(tooltipRef.current)
-            .style("top", (event.pageY - 80) + "px")
-            .style("left", (event.pageX - 230) + "px");
+            .style("top", (y + 10) + "px")
+            .style("left", (x + 10) + "px");
         })
         .on("mouseleave", () => {
           d3.select(tooltipRef.current)
@@ -315,63 +423,115 @@ const BarChart = ({ data, title }) => {
             .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
         });
 
-      const linePop = d3.line()
-        .x(d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
-        .y(d => yScalePop(d.Population))
-        .curve(d3.curveMonotoneX);
+      if (showPopulation) {
+        const linePop = d3.line()
+          .x(d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .y(d => yScalePopulation(d.Population))
+          .curve(d3.curveMonotoneX);
 
-      svg.append("path")
-        .datum(popArray.filter(d => filteredYears.includes(d.Year)))
-        .attr("fill", "none")
-        .attr("stroke", "darkblue")
-        .attr("stroke-width", 2)
-        .attr("d", linePop);
+        svg.append("path")
+          .datum(popuDataArray.filter(d => filteredYears.includes(d.Year)))
+          .attr("fill", "none")
+          .attr("stroke", "darkblue")
+          .attr("stroke-width", 2)
+          .attr("d", linePop);
 
-      svg.selectAll(".popCircle")
-        .data(popArray.filter(d => filteredYears.includes(d.Year)))
-        .enter()
-        .append("circle")
-        .attr("class", "popCircle")
-        .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
-        .attr("cy", d => yScalePop(d.Population))
-        .attr("r", 3)
-        .attr("fill", "darkblue")
-        .on("mouseover", (event, d) => {
-          const tooltipSel = d3.select(tooltipRef.current);
-          const htmlContent = getTooltipHtml("pop", d);
-          tooltipSel.style("visibility", "visible")
-            .html(htmlContent);
-          tooltipSel.transition().duration(200).style("opacity", 0.9);
-        })
-        .on("mousemove", event => {
-          d3.select(tooltipRef.current)
-            .style("top", (event.pageY - 80) + "px")
-            .style("left", (event.pageX - 230) + "px");
-        })
-        .on("mouseleave", () => {
-          d3.select(tooltipRef.current)
-            .transition().duration(200)
-            .style("opacity", 0)
-            .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
-        });
+        svg.selectAll(".popCircle")
+          .data(popuDataArray.filter(d => filteredYears.includes(d.Year)))
+          .enter()
+          .append("circle")
+          .attr("class", "popCircle")
+          .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .attr("cy", d => yScalePopulation(d.Population))
+          .attr("r", 3)
+          .attr("fill", "darkblue")
+          .on("mouseover", (event, d) => {
+            const tooltipSel = d3.select(tooltipRef.current);
+            const htmlContent = getTooltipHtml("pop", d);
+            tooltipSel.style("visibility", "visible")
+              .html(htmlContent);
+            tooltipSel.transition().duration(200).style("opacity", 0.9);
+          })
+          .on("mousemove", function (event) {
+            const [x, y] = d3.pointer(event, this.parentNode);
+            d3.select(tooltipRef.current)
+              .style("top", (y + 10) + "px")
+              .style("left", (x + 10) + "px");
+          })
+          .on("mouseleave", () => {
+            d3.select(tooltipRef.current)
+              .transition().duration(200)
+              .style("opacity", 0)
+              .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
+          });
+      } else {
+        const lineTemp = d3.line()
+          .x(d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .y(d => yScaleTemperature(d.Temper))
+          .curve(d3.curveMonotoneX);
 
-      const xAxisG = svg.append("g")
+        svg.append("path")
+          .datum(tempDataArray.filter(d => filteredYears.includes(d.Year)))
+          .attr("fill", "none")
+          .attr("stroke", "red")
+          .attr("stroke-width", 2)
+          .attr("d", lineTemp);
+
+        svg.selectAll(".tempCircle")
+          .data(tempDataArray.filter(d => filteredYears.includes(d.Year)))
+          .enter()
+          .append("circle")
+          .attr("class", "tempCircle")
+          .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+          .attr("cy", d => yScaleTemperature(d.Temper))
+          .attr("r", 3)
+          .attr("fill", "red")
+          .on("mouseover", (event, d) => {
+            const tooltipSel = d3.select(tooltipRef.current);
+            const htmlContent = getTooltipHtml("temp", d);
+            tooltipSel.style("visibility", "visible")
+              .html(htmlContent);
+            tooltipSel.transition().duration(200).style("opacity", 0.9);
+          })
+          .on("mousemove", function (event) {
+            const [x, y] = d3.pointer(event, this.parentNode);
+            d3.select(tooltipRef.current)
+              .style("top", (y + 10) + "px")
+              .style("left", (x + 10) + "px");
+          })
+          .on("mouseleave", () => {
+            d3.select(tooltipRef.current)
+              .transition().duration(200)
+              .style("opacity", 0)
+              .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
+          });
+      }
+
+      svg.append("g")
         .attr("class", "x-axis")
         .attr("transform", `translate(0, ${height})`)
-        .call(d3.axisBottom(xScale).tickFormat(d3.format("d")));
-      xAxisG.selectAll("text")
+        .call(d3.axisBottom(xScale).tickFormat(d3.format("d")))
+        .selectAll("text")
         .attr("transform", "rotate(-45)")
         .style("text-anchor", "end");
+
       svg.append("g")
         .attr("class", "y-axis-left")
         .call(d3.axisLeft(yScaleWater));
-      svg.append("g")
-        .attr("class", "y-axis-right")
-        .attr("transform", `translate(${width}, 0)`)
-        .call(d3.axisRight(yScalePop));
-    }
 
-  }, [data, waterType, minMaxYear, selectedVariable]);
+      if (showPopulation) {
+        svg.append("g")
+          .attr("class", "y-axis-right")
+          .attr("transform", `translate(${width}, 0)`)
+          .call(d3.axisRight(yScalePopulation));
+      } else {
+        svg.append("g")
+          .attr("class", "y-axis-right")
+          .attr("transform", `translate(${width}, 0)`)
+          .call(d3.axisRight(yScaleTemperature).ticks(20).tickFormat(d3.format(".4f")));
+      }
+    }
+  }, [data, waterType, minMaxYear, selectedVariable, showPopulation, title]);
 
   useEffect(() => {
     if (data && data.waterData && data.popuData) {
@@ -386,18 +546,21 @@ const BarChart = ({ data, title }) => {
   }, [drawChart]);
 
   return (
-    <div className="chart-container" style={{ flexDirection: "row-reverse" }}>
+    <div id="bar-chart" className="chart-container" style={{ flexDirection: "row-reverse" }}>
       <div className="chart-description">
         <h2>{title}</h2>
-        <p> the line chart is bla bla </p>
-        <p> the line chart is bla bla </p>
-        <p> the line chart is bla bla </p>
-        <p> the line chart is bla bla </p>
+        <EditableText
+          initialText={description}
+          className="chart-description-text"
+          onChange={(newText) => setDescription(newText)}
+          tag="div"
+        />
       </div>
       <div className="chart-figure">
         <div className="chart-controls">
-          <div className="water-type-switch">
+          <div className="line-toggle-buttons">
             <button
+              title="Usage"
               className={`water-type-btn ${waterType === "usage" ? "active" : ""}`}
               onClick={() => {
                 setWaterType("usage");
@@ -405,12 +568,25 @@ const BarChart = ({ data, title }) => {
               }}
             >U</button>
             <button
+              title="Resource"
               className={`water-type-btn ${waterType === "resource" ? "active" : ""}`}
               onClick={() => {
                 setWaterType("resource");
                 setSelectedVariable("AllVariables");
               }}
             >R</button>
+          </div>
+          <div className="line-toggle-buttons">
+            <button
+              title="Population"
+              className={`temp-popu-type-btn ${showPopulation ? "active" : ""}`}
+              onClick={() => setShowPopulation(true)}
+            >P</button>
+            <button
+              title="Temperature"
+              className={`temp-popu-type-btn ${!showPopulation ? "active" : ""}`}
+              onClick={() => setShowPopulation(false)}
+            >T</button>
           </div>
           <div className="variable-selector">
             <select

@@ -85,15 +85,28 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
   }, [rotation]);
 
   useEffect(() => {
-    if (roundGeoJson) {
-      const totalValues = roundGeoJson.features.map(d => d.properties.waterQTbyYear || 0);
-      const minTotal = d3.min(totalValues);
-      const maxTotal = d3.max(totalValues);
+    if (roundGeoJson && waterData) {
+      // Rollup the filtered waterData by UnifiedName for the selected year
+      const rollupWater = d3.rollups(
+        waterData,
+        v => d3.sum(v, d => d.Value),
+        d => d.UnifiedName
+      );
+      const waterByName = {};
+      rollupWater.forEach(([countryName, totalValue]) => {
+        waterByName[countryName] = totalValue;
+      });
+      const waterValues = Object.values(waterByName);
+      const minTotal = d3.min(waterValues) || 0;
+      const maxTotal = d3.max(waterValues) || 0;
 
-      // colorscale for the countries
+      // Create a color scale
+      const numStops = 10;
+      const domainStops = d3.range(numStops).map(i => minTotal + i * (maxTotal - minTotal) / (numStops - 1));
+      const rangeColors = ["#ff0000", "#ff3333", "#ff6666", "#ff9999", "#ffcccc", "#ccccff", "#9999ff", "#6666ff", "#3333ff", "#0000ff"];
       const colorScale = d3.scaleLinear()
-        .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
-        .range(["red", "yellow", "blue"])
+        .domain(domainStops)
+        .range(rangeColors)
         .interpolate(d3.interpolateRgb);
 
       const width = dimensions.width;
@@ -132,48 +145,47 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
         .data(roundGeoJson.features)
         .enter().append('path')
         .attr('d', path)
-        // .style('fill', '#997ffa')
-        .style('fill', d => colorScale(d.properties.waterQTbyYear))
+        .style('fill', d => {
+          const value = waterByName[d.properties.UnifiedName];
+          return colorScale(value !== undefined ? value : 0);
+        })
+        .style('stroke-width', 0.5)
         .style('stroke', '#060a0f')
         .attr('class', 'country')
         .on('mouseover', function (e, d) {
-          const tooltipHtml = getSimpleStatsTooltip(d, waterData);
           d3.select(tooltipRef.current)
             .style('visibility', 'visible')
             .style('opacity', 1)
-            .html(tooltipHtml);
+            .html(getSimpleStatsTooltip(d, waterData));
 
           d3.select(this)
             .transition()
             .duration(300)
             .style('fill', '#5f3fb3');
-
-          svg.selectAll('.country')
-            .filter(function () { return this !== d3.select(this).node(); })
-            .transition()
-            .duration(300)
-            .style('fill', '#997ffa');
         })
         .on('mousemove', function (event) {
           d3.select(tooltipRef.current)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY + 10) + 'px');
         })
-        .on('mouseout', function () {
+        .on('mouseout', function (e, d) {
           d3.select(tooltipRef.current)
             .style('visibility', 'hidden')
             .style('opacity', 0);
           d3.select(this)
             .transition()
             .duration(300)
-            .style('fill', '#997ffa');
+            .style('fill', () => {
+              const value = waterByName[d.properties.UnifiedName];
+              return colorScale(value !== undefined ? value : 0);
+            });
         })
         .on('mousedown', (e, d) => {
           e.stopPropagation();
-          onCountryClick(d.properties.UnifiedName);
-          console.log("Selected country:", d.properties.UnifiedName);
+          if (onCountryClick) {
+            onCountryClick(d.properties.UnifiedName);
+          }
         })
-
 
       let animationFrameId;
 
@@ -232,6 +244,9 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
       // initial update of the globe
       updateGlobe(svg, path, graticule, projection);
 
+      // draw legend
+      drawLegend(svg, colorScale, minTotal, maxTotal);
+
       // clean up
       return () => {
         svg.on('mousedown', null)
@@ -240,6 +255,7 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
           .on('mousemove', null);
       };
     }
+
   }, [
     roundGeoJson,
     isMouseDown,
@@ -248,6 +264,74 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
     zoomScale,
     updateGlobe
   ]);
+
+
+  function drawLegend(svg, colorScale, minTotal, maxTotal) {
+    // Remove any old legend
+    svg.select(".legend").remove();
+
+    const legendWidth = 10;
+    const legendHeight = 250;
+    const legendX = dimensions.width - 70;
+    const legendY = 100;
+
+    const legend = svg.append("g")
+      .attr("class", "legend")
+      .attr("transform", `translate(${legendX},${legendY})`);
+
+    let defs = svg.select("defs");
+    if (defs.empty()) defs = svg.append("defs");
+    defs.selectAll("#legend-gradient").remove();
+
+    const gradient = defs.append("linearGradient")
+      .attr("id", "legend-gradient")
+      .attr("x1", "0%").attr("x2", "0%")
+      .attr("y1", "100%").attr("y2", "0%");
+
+    const numStops = 10;
+    const stops = d3.range(numStops).map(i => minTotal + i * (maxTotal - minTotal) / (numStops - 1));
+    const stopPercents = d3.range(numStops).map(i => `${(i / (numStops - 1)) * 100}%`);
+
+    stops.forEach((d, i) => {
+      gradient.append("stop")
+        .attr("offset", stopPercents[i])
+        .attr("stop-color", colorScale(d));
+    });
+
+    legend.append("rect")
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", "url(#legend-gradient)");
+
+    const legendScale = d3.scaleLinear()
+      .domain([minTotal, maxTotal])
+      .range([legendHeight, 0]);
+
+    const legendAxis = d3.axisRight(legendScale)
+      .ticks(10)
+      .tickSize(6);
+
+    legend.append("g")
+      .attr("transform", `translate(${legendWidth},0)`)
+      .call(legendAxis);
+
+    // "Water Quantity" box - centered horizontally under the legend label in the middle
+    legend.append("rect")
+      .attr("x", -50) // Centers a 100px wide rect on the legend origin
+      .attr("y", legendHeight + 10)
+      .attr("width", 100)
+      .attr("height", 20)
+      .style("fill", "lightgray");
+
+    // Text label inside the "Water Quantity" box, centered horizontally
+    legend.append("text")
+      .attr("x", 0) // Center text relative to the box
+      .attr("y", legendHeight + 10 + 10) // Center vertically in the 20px tall box
+      .attr("text-anchor", "middle")
+      .text("Water Quantity")
+      .style("font-size", "12px")
+      .attr("dy", "0.35em");
+  }
 
 
   return (

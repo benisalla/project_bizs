@@ -3,6 +3,7 @@ import FlatMap from './FlatMap';
 import RoundMap from './RoundMap';
 import './MapChart.css';
 import { useLoader } from '../../../APIs/Reducer';
+import GlobalStats from '../GlobalStats/GlobalStats';
 
 const MapChart = ({
     onCountryClick,
@@ -88,21 +89,30 @@ const MapChart = ({
                 </div>
             </div>
 
-            {roundGeoJson && flatGeoJson && waterData.length > 0 && (
-                flatMap ?
-                    <FlatMap
-                        flatGeoJson={flatGeoJson}
+            <div className="global-map-container">
+                {roundGeoJson && flatGeoJson && waterData.length > 0 && (
+                    flatMap ?
+                        <FlatMap
+                            flatGeoJson={flatGeoJson}
+                            waterData={filteredWaterData}
+                            populationData={filteredPopuData}
+                            temperatureData={filteredTempData}
+                            onCountryClick={onCountryClick} /> :
+                        <RoundMap
+                            roundGeoJson={roundGeoJson}
+                            waterData={filteredWaterData}
+                            populationData={filteredPopuData}
+                            temperatureData={filteredTempData}
+                            onCountryClick={onCountryClick} />
+                )}
+                {roundGeoJson && flatGeoJson && waterData.length > 0 && (
+                    <GlobalStats
                         waterData={filteredWaterData}
                         populationData={filteredPopuData}
-                        temperatureData={filteredTempData}
-                        onCountryClick={onCountryClick} /> :
-                    <RoundMap
-                        roundGeoJson={roundGeoJson}
-                        waterData={filteredWaterData}
-                        populationData={filteredPopuData}
-                        temperatureData={filteredTempData}
-                        onCountryClick={onCountryClick} />
-            )}
+                        temperatureData={filteredTempData} />
+
+                )}
+            </div>
 
         </div>
     );

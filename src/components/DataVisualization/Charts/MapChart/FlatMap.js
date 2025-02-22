@@ -3,6 +3,28 @@ import * as d3 from "d3";
 import "./FlatMap.css";
 
 
+
+// water data contains attributes: 
+//   Area
+//   IsAggregate
+//   Subgroup
+//   Symbol
+//   UnifiedName
+//   Unit
+//   Value
+//   Variable
+//   VariableGroup
+//   Year
+//   type
+
+// population data contains attributes: 
+//   UnifiedName
+//   value
+
+// temperature data contains attributes: 
+//   UnifiedName
+//   value
+
 const FlatMap = (
   {
     flatGeoJson,
@@ -26,29 +48,28 @@ const FlatMap = (
   useEffect(() => {
     if (!flatGeoJson) return;
 
-    // min and max values of waterQTbyYear
-    const totalValues = flatGeoJson.features.map(
-      (d) => d.properties.waterQTbyYear || 0
-    );
-    const minTotal = d3.min(totalValues);
-    const maxTotal = d3.max(totalValues);
-
-    // Create a color scale
-    const colorScale = d3.scaleLinear()
-      .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
-      .range(["blue", "white", "red"])
-      .interpolate(d3.interpolateRgb);
-
-    // Rollup the waterData by UnifiedName
+    // Rollup the filtered waterData by UnifiedName for the selected year
     const rollupWater = d3.rollups(
       waterData,
       v => d3.sum(v, d => d.Value),
       d => d.UnifiedName
     );
     const waterByName = {};
-    for (let [countryName, totalValue] of rollupWater) {
+    rollupWater.forEach(([countryName, totalValue]) => {
       waterByName[countryName] = totalValue;
-    }
+    });
+    const waterValues = Object.values(waterByName);
+    const minTotal = d3.min(waterValues) || 0;
+    const maxTotal = d3.max(waterValues) || 0;
+
+    // Create a color scale
+    const numStops = 10;
+    const domainStops = d3.range(numStops).map(i => minTotal + i * (maxTotal - minTotal) / (numStops - 1));
+    const rangeColors = ["#ff0000", "#ff3333", "#ff6666", "#ff9999", "#ffcccc", "#ccccff", "#9999ff", "#6666ff", "#3333ff", "#0000ff"];
+    const colorScale = d3.scaleLinear()
+      .domain(domainStops)
+      .range(rangeColors)
+      .interpolate(d3.interpolateRgb);
 
     // Map temperatureData by UnifiedName (each record contains a single value)
     const temperatureByName = {};
@@ -94,7 +115,7 @@ const FlatMap = (
         .style("opacity", 1)
         .html(`
           <strong>Country:</strong> ${unifiedName}<br/>
-          <strong>Quantity Of Water:</strong> </br> ${water_value !== undefined && !isNaN(water_value) ? water_value.toFixed(2) : "N/A" }<br/>
+          <strong>Quantity Of Water:</strong> </br> ${water_value !== undefined && !isNaN(water_value) ? water_value.toFixed(2) : "N/A"}<br/>
           <strong>Population:</strong> ${popu_value !== undefined ? popu_value : "N/A"}<br/>
           <strong>Temperature:</strong> ${temp_value !== undefined ? temp_value.toFixed(2) : "N/A"}<br/>
         `);
@@ -128,7 +149,10 @@ const FlatMap = (
       .transition()
       .duration(600)
       .ease(d3.easeCubicOut)
-      .style('fill', d => colorScale(d.properties.waterQTbyYear))
+      .style('fill', d => {
+        const value = waterByName[d.properties.UnifiedName];
+        return colorScale(value !== undefined ? value : 0);
+      })
 
     // Attach mouse & click listeners
     svg.selectAll(".country")
@@ -145,9 +169,12 @@ const FlatMap = (
           (event.type === 'touchmove') ||
           (event.type === 'touchend');
       })
-      .scaleExtent([0.2, 4])
+      .scaleExtent([0.1, 5])
       .on('zoom', event => {
-        const newAbsoluteScale = baseScaleRef.current * event.transform.k;
+
+        const slowK = 1 + (event.transform.k - 1) * 0.2; // reduce zoom sensitivity
+        const newAbsoluteScale = baseScaleRef.current * slowK;
+
         if (Math.abs(newAbsoluteScale - projection.scale()) > 1e-5) {
           svg.transition()
             .duration(250)
@@ -186,7 +213,7 @@ const FlatMap = (
     svg.call(dragBehavior);
     // Draw or update a legend
     drawLegend(svg, colorScale, minTotal, maxTotal);
-  }, [flatGeoJson, waterData]);
+  }, [flatGeoJson, waterData, populationData, temperatureData]);
 
   // 4) Draw a Legend
   function drawLegend(svg, colorScale, minTotal, maxTotal) {
@@ -195,7 +222,7 @@ const FlatMap = (
 
     const legendWidth = 10;
     const legendHeight = 250;
-    const legendX = width - 50;
+    const legendX = width + 50;
     const legendY = 100;
 
     const legend = svg.append("g")
@@ -220,7 +247,6 @@ const FlatMap = (
         .attr("stop-color", colorScale(d));
     });
 
-
     legend.append("rect")
       .attr("width", legendWidth)
       .attr("height", legendHeight)
@@ -232,26 +258,29 @@ const FlatMap = (
       .range([legendHeight, 0]);
 
     const legendAxis = d3.axisRight(legendScale)
-      .ticks(5)
+      .ticks(10)
       .tickSize(6);
 
     legend.append("g")
       .attr("transform", `translate(${legendWidth},0)`)
       .call(legendAxis);
 
+    // "Water Quantity" box - centered horizontally under the legend label in the middle
     legend.append("rect")
-      .attr("x", 0)
+      .attr("x", -50) // Centers a 100px wide rect on the legend origin
       .attr("y", legendHeight + 10)
-      .attr("width", legendWidth)
+      .attr("width", 100)
       .attr("height", 20)
       .style("fill", "lightgray");
 
+    // Text label inside the "Water Quantity" box, centered horizontally
     legend.append("text")
-      .attr("x", legendWidth / 2)
-      .attr("y", legendHeight + 40)
-      .text("No Data")
+      .attr("x", 0) // Center text relative to the box
+      .attr("y", legendHeight + 10 + 10) // Center vertically in the 20px tall box
       .attr("text-anchor", "middle")
-      .style("font-size", "12px");
+      .text("Water Quantity")
+      .style("font-size", "12px")
+      .attr("dy", "0.35em");
   }
 
   return (
