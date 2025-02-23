@@ -1,14 +1,9 @@
-/* Main container styling */
 .country-details-container {
   margin: 0 auto;
   max-width: 1200px;
-  /* background: #ffffff; */
-  /* border-radius: 10px; */
-  /* box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); */
   font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
-/* Back button */
 .back-button-container {
   margin-top: 20px;
   margin-bottom: 10px;
@@ -38,7 +33,7 @@
   transition: background 0.3sease, transform 0.2sease;
 }
 
-.back-button:hover{
+.back-button:hover {
   background-color: #d32f2f;
   transform: translateY(-2px);
 }
@@ -64,12 +59,15 @@
 .country-map {
   width: 100%;
   border: none;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #fff;
 }
 
-/* Statistics section (if you decide to use one) */
 .country-stats {
   background: #f5f5f5;
   border: 1px solid #e0e0e0;

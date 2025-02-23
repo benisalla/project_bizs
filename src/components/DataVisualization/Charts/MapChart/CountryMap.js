@@ -4,6 +4,7 @@ import "./CountryMap.css";
 
 const CountryMap = ({
   countryGeoJson,
+  country_name,
   width = 800,
   height = 600,
   margin = 10,
@@ -45,8 +46,9 @@ const CountryMap = ({
       .datum(countryGeoJson)
       .attr("d", pathGenerator)
       .attr("fill", fillColor)
-      .attr("stroke", strokeColor)
-      .attr("stroke-width", 1)
+      // .attr("stroke", strokeColor)
+      .attr("stroke", "none")
+      .attr("stroke-width", 0)
       .style("cursor", "pointer")
       .on("mouseover", (event, d) => {
         // On mouseover, darken the fill and show the tooltip
@@ -96,11 +98,15 @@ const CountryMap = ({
 
   return (
     <div className="country-map-container">
+      {country_name && (
+        <div className="map-title">
+          Map of <strong>{country_name}</strong>
+        </div>
+      )}
       <svg
         ref={svgRef}
         width={width}
         height={height}
-        style={{ border: "1px solid #ccc", backgroundColor: "#fff" }}
       />
       <div ref={tooltipRef} className="country-map-tooltip" />
     </div>

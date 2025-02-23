@@ -122,7 +122,10 @@ const CountryDetails = ({
         <div className="country-header">
           <div className="country-map">
             {code2CountryMapping ? (
-              <CountryMap countryGeoJson={countryGeoJson} />
+              <CountryMap
+                countryGeoJson={countryGeoJson}
+                country_name={code2CountryMapping[curr_country_code]}
+              />
             ) : (
               <p>Loading...</p>
             )}
