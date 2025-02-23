@@ -1,7 +1,7 @@
 import React from 'react';
 import './Home.css';
 
-const video_path = process.env.PUBLIC_URL + "/assets/images/vis-project-video.mp4";
+const video_path = process.env.PUBLIC_URL + "/assets/images/vis-project-video.gif";
 const code_path = process.env.PUBLIC_URL + "/assets/images/code.png";
 const target_website_path = process.env.PUBLIC_URL + "/assets/images/target-website.png";
 const model_path = process.env.PUBLIC_URL + "/assets/images/lstm-image.png";
@@ -15,16 +15,12 @@ const Home = () => {
       {/* Section 1: Description of the Project */}
       <section className="project-description">
         <header className="hero">
-          <video
-            autoPlay
-            loop
-            muted
+          <img
+            src={video_path}
+            alt="Project preview"
             className="hero-video"
-            poster={process.env.PUBLIC_URL + "/assets/images/your-poster.jpg"}
-          >
-            <source src={video_path} type="video/mp4" />
-            Your browser does not support the video tag.
-          </video>
+          />
+
           <div className="hero-content">
             <h1>
               <i className="fa fa-water" aria-hidden="true"></i>
@@ -166,7 +162,7 @@ const Home = () => {
           <img
             src={sheet_v4_path}
             alt="Design sheet version 4"
-            className="prediction-image"
+            className="sheet-image"
           />
           <img
             src={sheet_v5_path}
