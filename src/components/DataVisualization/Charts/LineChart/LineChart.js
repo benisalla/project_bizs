@@ -44,17 +44,22 @@ const LineChart = ({ data }) => {
     const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
     const [title, setTitle] = useState("Line Chart of Water Usage & Population");
     const [description, setDescription] = useState(
-        `<p>This line chart visualizes the relationship between <span style="color: #007bff;">water usage</span> and <span style="color: #000066;">population growth</span> over time.</p>
-        
-        <p><strong>Insights:</strong></p>
-        <ul>
-            <li>Tracks <span style="color: #007bff;">water consumption trends</span> and their fluctuations.</li>
-            <li>Highlights the steady increase in <span style="color: #000066;">population</span> and its impact on resources.</li>
-            <li>Provides a clear perspective for analyzing sustainability and resource management.</li>
-        </ul>
-        
-        <p><strong>Application:</strong> Useful for researchers, and urban planners to optimize water resource allocation based on demographic changes.</p>`
+        `<p>This line chart provides a general overview of how changes in 
+          <span style="color: #007bff;">water-related metrics</span> 
+          (e.g., usage or resources) correlate with 
+          <span style="color: #000066;">demographic or environmental variables</span> 
+          (e.g., population or temperature) over time.</p>
+          
+         <p><strong>What it helps us do:</strong></p>
+         <ul>
+           <li>Analyze trends and patterns for better resource management.</li>
+           <li>Identify potential impacts of population growth or temperature changes on water availability.</li>
+           <li>Inform decision-making in sustainability and urban planning.</li>
+         </ul>
+      
+         <p>You can edit this description to suit your specific insights or analysis.</p>`
     );
+
 
     const drawChart = useCallback(() => {
         if (!lineSvgRef.current || !data || !data.waterData || !data.popuData) return;
@@ -442,6 +447,35 @@ const LineChart = ({ data }) => {
         if (showPopulation) legendData.push({ name: "Population", color: "darkblue" });
         if (!showPopulation) legendData.push({ name: "Temperature", color: "red" });
 
+        // x-axis and y-axis labels
+        svg.append("text")
+            .attr("class", "x-axis-label")
+            .attr("x", width / 2)
+            .attr("y", height - 10)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("color", "blue")
+            .text(`Years [${minMaxYear[0]}-${minMaxYear[1]}]`);
+        svg.append("text")
+            .attr("class", "y-axis-label-left")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -40)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("color", "blue")
+            .text(showUsage ? "Water Usage Quantity (m3/habitat)" : "Water Resource Quantity (m3/habitat)");
+        svg.append("text")
+            .attr("class", "y-axis-label-right")
+            .attr("transform", "rotate(90)")
+            .attr("x", height / 2)
+            .attr("y", -width - 40)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("color", "blue")
+            .text(showPopulation ? "Population (habitat)" : "Temperature Change (°C)");
+
+        // legend for the chart
         const legend = svg
             .selectAll(".legend")
             .data(legendData)

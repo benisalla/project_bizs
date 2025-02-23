@@ -101,10 +101,10 @@
     background: rgba(0, 0, 0, 0.75);
     color: #fff;
     padding: 5px 8px;
-    border-radius: 5px;
+    border-radius: 10px;
     white-space: nowrap;
     opacity: 0;
-    visibility: hidden;
+    visibility: visible;
     transition: opacity 0.01s ease-in-out;
     font-size: 12px;
     pointer-events: none;

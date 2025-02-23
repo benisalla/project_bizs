@@ -7,9 +7,6 @@ const CountryMap = ({
   country_name,
   width = 800,
   height = 600,
-  margin = 10,
-  fillColor = "#ccc",
-  strokeColor = "#333",
 }) => {
   const svgRef = useRef(null);
   const tooltipRef = useRef(null);
@@ -31,8 +28,8 @@ const CountryMap = ({
       .reflectX(false)
       .fitExtent(
         [
-          [margin, margin],
-          [width - margin, height - margin],
+          [6, 6],
+          [width - 6, height - 6],
         ],
         countryGeoJson
       );
@@ -45,17 +42,16 @@ const CountryMap = ({
       .append("path")
       .datum(countryGeoJson)
       .attr("d", pathGenerator)
-      .attr("fill", fillColor)
-      // .attr("stroke", strokeColor)
-      .attr("stroke", "none")
-      .attr("stroke-width", 0)
+      .attr("fill", "lightblue")
+      .attr("stroke", "black")
+      .attr("stroke-width", 1)
       .style("cursor", "pointer")
       .on("mouseover", (event, d) => {
         // On mouseover, darken the fill and show the tooltip
         d3.select(event.currentTarget)
           .transition()
           .duration(200)
-          .attr("fill", d3.rgb(fillColor).darker(0.5));
+          .attr("fill", d3.rgb("lightblue").darker(0.5));
 
         tooltip
           .transition()
@@ -80,7 +76,7 @@ const CountryMap = ({
         d3.select(event.currentTarget)
           .transition()
           .duration(200)
-          .attr("fill", fillColor);
+          .attr("fill", "lightblue");
         tooltip
           .transition()
           .duration(500)
@@ -94,7 +90,7 @@ const CountryMap = ({
         tooltipRef.current = null;
       }
     };
-  }, [countryGeoJson, width, height, margin, fillColor, strokeColor]);
+  }, [countryGeoJson]);
 
   return (
     <div className="country-map-container">

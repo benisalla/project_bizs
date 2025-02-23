@@ -11,7 +11,7 @@ const getScatterTooltipHtml = (d) => {
     <div class="tooltip-content">
       <strong>Year:</strong> ${d.Year}<br/>
       <strong>Population:</strong> ${d.Population.toLocaleString()}<br/>
-      <strong>Water Value:</strong> ${d.Value.toFixed(2)} ${d.Unit}
+      <strong>Water Quantity:</strong> ${d.Value.toFixed(2)} ${d.Unit}
     </div>
   `;
 };
@@ -22,7 +22,7 @@ const getScatterTooltipHtmlTemperature = (d) => {
     <div class="tooltip-content">
       <strong>Year:</strong> ${d.Year}<br/>
       <strong>Temperature:</strong> ${d.Temper}<br/>
-      <strong>Water Value:</strong> ${d.Value.toFixed(2)} ${d.Unit}
+      <strong>Water Quantity:</strong> ${d.Value.toFixed(2)} ${d.Unit}
     </div>
   `;
 };
@@ -35,23 +35,30 @@ const ScatterChart = ({ data }) => {
     const [showPopulation, setShowPopulation] = useState(true);
     const [title, setTitle] = useState("Scatter Chart of Water Usage & Population");
     const [description, setDescription] = useState(
-        `<p><strong>Overview:</strong> This scatter chart visualizes the relationship between <span style="color: #d38d00;">water usage</span> and <span style="color: #000066;">population growth</span> for DZA.</p>
-    
-    <p><strong>Insights:</strong></p>
-    <ul>
-        <li>Each <span style="color: #d38d00;">dot</span> represents a data point linking <strong>water consumption</strong> to <strong>population size</strong>.</li>
-        <li>Identifies patterns and potential anomalies in resource usage.</li>
-        <li>Provides a clear view of how population dynamics impact water demand.</li>
-    </ul>
-    
-    <p><strong>Application:</strong> Useful for environmental analysis, resource planning, and policy-making to ensure sustainable water management.</p>`
+        `<p>This scatter chart provides an overview of how 
+          <span style="color: #d38d00;">water usage</span> 
+          correlates with 
+          <span style="color: #000066;">population</span>. 
+          Each <strong><span style="color: #d38d00;">dot</span></strong> represents a data point linking water consumption to demographic size.</p>
+          
+         <p><strong>What it helps us do:</strong></p>
+         <ul>
+           <li>Reveal patterns and potential anomalies in water demand.</li>
+           <li>Examine how population changes may influence resource usage.</li>
+           <li>Provide actionable insights for environmental planning and policy-making.</li>
+         </ul>
+      
+         <p>You can edit this description to focus on specific findings or analyses relevant to your context.</p>`
     );
+
 
     const drawChart = useCallback(() => {
         if (!scatterSvgRef.current || !data || !data.waterData || !data.popuData || !data.tempData) {
             console.error("Missing required data properties.");
             return;
         }
+
+        setTitle("Line Chart of Water " + (waterType == "usage" ? "Usage" : "Resource") + " & " + (showPopulation ? "Population" : "Temperature"));
 
         // Destructure the water, population and temperature data.
         const { waterData, popuData, tempData } = data;
@@ -92,8 +99,6 @@ const ScatterChart = ({ data }) => {
             return null;
         }).filter(d => d !== null);
 
-        console.log("Merged Data for Scatter Chart:", mergedData);
-
         // Get responsive dimensions.
         if (!scatterSvgRef.current._dimensions) {
             const containerElement = scatterSvgRef.current.parentNode;
@@ -133,7 +138,7 @@ const ScatterChart = ({ data }) => {
             .range([0, width])
             .nice();
 
-        // yScale: water value.
+        // yScale: Water Quantity.
         const yScale = d3.scaleLinear()
             .domain([d3.min(mergedData, d => d.Value), d3.max(mergedData, d => d.Value)])
             .range([height, 0])
@@ -198,28 +203,25 @@ const ScatterChart = ({ data }) => {
                     .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
             });
 
-        // // Add a legend.
-        // const legendData = [
-        //     { name: "Water Value", color: "orange" },
-        //     { name: showPopulation ? "Population" : "Temperature", color: showPopulation ? "darkblue" : "red" }
-        // ];
-        // const legend = svg.selectAll(".legend")
-        //     .data(legendData)
-        //     .enter()
-        //     .append("g")
-        //     .attr("class", "legend")
-        //     .attr("transform", (_, i) => `translate(${width - 100}, ${i * 20})`);
-        // legend.append("rect")
-        //     .attr("x", 0)
-        //     .attr("y", 0)
-        //     .attr("width", 12)
-        //     .attr("height", 12)
-        //     .style("fill", d => d.color);
-        // legend.append("text")
-        //     .attr("x", 18)
-        //     .attr("y", 10)
-        //     .style("font-size", "12px")
-        //     .text(d => d.name);
+        // Add x-axis label based on the showPopulation toggle.
+        svg.append("text")
+            .attr("class", "x-axis-label")
+            .attr("x", width / 2)
+            .attr("y", height + margin.bottom - 15)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "black")
+            .text(showPopulation ? "Population (habitat)" : "Temperature (°C)");
+        svg.append("text")
+            .attr("class", "y-axis-label")
+            .attr("transform", "rotate(-90)")
+            .attr("x", -height / 2)
+            .attr("y", -margin.left - 30)
+            .attr("text-anchor", "middle")
+            .style("font-size", "12px")
+            .style("fill", "black")
+            .text(waterType === "usage" ? "Water Usage Value" : "Water Resource Value");
+
 
         // Compute regression line data based on the scatter points.
         const regressionData = mergedData.map(d => [
@@ -289,12 +291,14 @@ const ScatterChart = ({ data }) => {
                         <button
                             className={`water-type-btn ${waterType === "usage" ? "active" : ""}`}
                             onClick={() => setWaterType("usage")}
+                            title="Water Usage"
                         >
                             U
                         </button>
                         <button
                             className={`water-type-btn ${waterType === "resource" ? "active" : ""}`}
                             onClick={() => setWaterType("resource")}
+                            title="Water Resource"
                         >
                             R
                         </button>
