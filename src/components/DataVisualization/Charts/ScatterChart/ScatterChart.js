@@ -58,6 +58,8 @@ const ScatterChart = ({ data }) => {
             return;
         }
 
+        setTitle("Line Chart of Water " + (waterType == "usage" ? "Usage" : "Resource") + " & " + (showPopulation ? "Population" : "Temperature"));
+
         // Destructure the water, population and temperature data.
         const { waterData, popuData, tempData } = data;
 
@@ -289,12 +291,14 @@ const ScatterChart = ({ data }) => {
                         <button
                             className={`water-type-btn ${waterType === "usage" ? "active" : ""}`}
                             onClick={() => setWaterType("usage")}
+                            title="Water Usage"
                         >
                             U
                         </button>
                         <button
                             className={`water-type-btn ${waterType === "resource" ? "active" : ""}`}
                             onClick={() => setWaterType("resource")}
+                            title="Water Resource"
                         >
                             R
                         </button>
