@@ -51,18 +51,22 @@ const BarChart = ({ data }) => {
   const [showPopulation, setShowPopulation] = useState(true);
   const [title, setTitle] = useState("Bar Chart of Water Usage & Population");
   const [description, setDescription] = useState(
-    `<p><strong>Overview:</strong> This bar chart illustrates the correlation between <span style="color: #b58900;">water usage</span> and <span style="color: #000066;">population growth</span> over time.</p>
-    
-    <p><strong>Insights:</strong></p>
-    <ul>
-        <li>The <span style="color: #b58900;">bars</span> represent the increasing trend in <strong>water consumption</strong>.</li>
-        <li>The <span style="color: #000066;">line</span> showcases steady <strong>population growth</strong>.</li>
-        <li>Highlights the impact of demographic expansion on resource demand.</li>
-    </ul>
-    
-    <p><strong>Application:</strong> Essential for urban planning, resource optimization, and sustainability analysis.</p>`
+    `<p>This bar chart offers a broad view of how 
+      <span style="color: #b58900;">water usage</span> 
+      correlates with 
+      <span style="color: #000066;">population growth</span> 
+      over time. The <strong>bars</strong> highlight changes in water consumption, 
+      while the <strong>line</strong> indicates demographic shifts.</p>
+      
+     <p><strong>What it helps us do:</strong></p>
+     <ul>
+       <li>Visualize water consumption trends alongside population dynamics.</li>
+       <li>Identify how demographic expansion may influence resource demand.</li>
+       <li>Support informed decisions in sustainability and urban planning.</li>
+     </ul>
+  
+     <p>You can edit this description to emphasize specific insights or findings relevant to your analysis.</p>`
   );
-
 
   // Compute unique variables from the raw water data.
   const uniqueVariables = useMemo(() => {
@@ -124,14 +128,40 @@ const BarChart = ({ data }) => {
       .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
     // Add Chart Title.
-    svg
-      .append("text")
-      .attr("x", width / 2)
+    svg.append("text")
+      .attr("x", containerWidth / 2)
       .attr("y", -20)
       .attr("text-anchor", "middle")
       .style("font-size", "16px")
       .style("font-weight", "bold")
       .text(`Consommation d'eau & ${showPopulation ? "Population" : "Temperature"} pour ${title} (${waterType})`);
+
+    // x-axis and y-axis labels
+    svg.append("text")
+      .attr("class", "x-axis-label")
+      .attr("x", width / 2)
+      .attr("y", height + 33)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .style("color", "black")
+      .text(`Years [${minMaxYear[0]}-${minMaxYear[1]}]`);
+    svg.append("text")
+      .attr("class", "y-axis-label-left")
+      .attr("transform", "rotate(-90)")
+      .attr("x", -height / 2)
+      .attr("y", -margin.left)
+      .attr("dy", "-1em")
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .style("fill", "black")
+      .text(waterType === "usage" ? "Water Usage Quantity (m3/habitat)" : "Water Resource Quantity (m3/habitat)");
+    svg.append("text")
+      .attr("class", "y-axis-label-right")
+      .attr("transform", `translate(${width + 20}, ${height / 2}) rotate(90)`)
+      .attr("text-anchor", "middle")
+      .style("font-size", "12px")
+      .style("fill", "black")
+      .text(showPopulation ? "Population (habitat)" : "Temperature Change (°C)");
 
     // Data Processing.
     const startYear = 1967;
@@ -353,7 +383,7 @@ const BarChart = ({ data }) => {
         svg.append("g")
           .attr("class", "y-axis-right")
           .attr("transform", `translate(${width}, 0)`)
-          .call(d3.axisRight(yScaleTemperature).ticks(20).tickFormat(d3.format(".4f")));
+          .call(d3.axisRight(yScaleTemperature).ticks(10).tickFormat(d3.format(".4f")));
       }
     }
     // CASE 2: a specific variable selected – use a single bar.
@@ -507,6 +537,7 @@ const BarChart = ({ data }) => {
           });
       }
 
+      // Draw the axes.
       svg.append("g")
         .attr("class", "x-axis")
         .attr("transform", `translate(0, ${height})`)
