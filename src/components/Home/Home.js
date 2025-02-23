@@ -4,6 +4,10 @@ import './Home.css';
 const video_path = process.env.PUBLIC_URL + "/assets/images/vis-project-video.mp4";
 const code_path = process.env.PUBLIC_URL + "/assets/images/code.png";
 const target_website_path = process.env.PUBLIC_URL + "/assets/images/target-website.png";
+const model_path = process.env.PUBLIC_URL + "/assets/images/lstm-image.png";
+const prediction_path = process.env.PUBLIC_URL + "/assets/images/prediction.jpg";
+const sheet_v4_path = process.env.PUBLIC_URL + "/assets/images/sheet-4.jpeg";
+const sheet_v5_path = process.env.PUBLIC_URL + "/assets/images/sheet-5.jpg";
 
 const Home = () => {
   return (
@@ -49,7 +53,7 @@ const Home = () => {
         <div className="overview">
           <h2>Project Overview</h2>
           <p>
-            This interactive web application is developed as part of our Data Visualization course at <strong>Ecole Centrale de Lyon</strong>. Our objective is to present a compelling narrative on global water usage and climate change through innovative visualizations. Using technologies such as JavaScript, D3, and HTML/CSS, we emphasize originality, interactivity, and rigorous data analysis. Special thanks to our course instructor, <em>Professor Romain Vuillemot</em>, for his invaluable guidance. Developed by <strong>Siham Zarmoum</strong> and <strong>Ben Alla Ismail</strong>.
+            This interactive web application is developed as part of our Data Visualization course at <strong>Ecole Centrale de Lyon</strong>. Our objective is to present a compelling narrative on global water usage and climate change through innovative visualizations. Using technologies such as JavaScript, D3, and HTML/CSS, we emphasize originality, interactivity, and rigorous data analysis. Special thanks to our course instructor, <em>Professor Romain Vuillemot</em>, for his invaluable guidance.
           </p>
         </div>
 
@@ -137,19 +141,47 @@ const Home = () => {
       <section className="predictions">
         <h2>Predictive Analysis</h2>
         <p>
-          Our prediction module leverages advanced forecasting models such as LSTM and ARIMA to predict future trends in water usage and resource management. These insights aid in strategic planning and sustainable resource allocation.
+          Our prediction module leverages advanced forecasting models such as LSTM and simple Linear Regression to forecast future trends in water usage and resource management. These insights support strategic planning and sustainable resource allocation.
         </p>
-        <div className="prediction-module">
-          <p>[Prediction Module Placeholder]</p>
+        <p>
+          LSTM (Long Short-Term Memory) is a type of recurrent neural network capable of learning long-term dependencies. In our application, it analyzes historical water consumption, population growth, and climate variations to predict future water availability and potential scarcity.
+        </p>
+        <div className="prediction-images">
+          <img src={prediction_path} alt="Example of water quantity prediction" className="prediction-image" />
+          <img src={model_path} alt="Model visualization" className="prediction-image" />
         </div>
       </section>
 
+
+      {/* Section 5: Design Sheets & Brainstorming */}
+      <section className="sheet-design">
+        <h2>Design Sheets & Brainstorming</h2>
+        <p>
+          In this section, we showcase the design sheets and brainstorming activities that guided our website creation. These were hand-drawn before we began implementing the graphs and data processing.
+        </p>
+        <p>
+          The first image (Sheet 4) was created a few weeks ago, while the second image (Sheet 5) was developed more recently. Our “MyWater” application closely follows the design principles outlined in Sheet 5.
+        </p>
+        <div className="sheet-images">
+          <img
+            src={sheet_v4_path}
+            alt="Design sheet version 4"
+            className="prediction-image"
+          />
+          <img
+            src={sheet_v5_path}
+            alt="Design sheet version 5"
+            className="sheet-image"
+          />
+        </div>
+      </section>
 
 
       {/* Footer */}
       <footer>
         <p>
           This project is part of the Data Visualization course at <a href="https://www.ec-lyon.fr/" target="_blank" rel="noopener noreferrer">Ecole Centrale de Lyon</a>.
+          Developed by <strong>Siham Zarmoum</strong> and <strong>Ben Alla Ismail</strong>.
         </p>
         <p>&copy; {new Date().getFullYear()} Water Explorer. All rights reserved.</p>
       </footer>
