@@ -169,6 +169,62 @@ a {
     color: #333;
 }
 
+
+/* Temperature Section */
+.temperature-section {
+    padding: 60px 20px;
+    background: #eef7f9;
+    text-align: center;
+}
+
+.temperature-section h2 {
+    font-size: 32px;
+    margin-bottom: 40px;
+    color: #d35400;
+}
+
+.temperature-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 20px;
+}
+
+.temperature-card {
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 20px;
+    flex: 1 1 300px;
+    max-width: 500px;
+    text-align: left;
+    position: relative;
+}
+
+.temp-icon {
+    width: 50px;
+    height: 50px;
+    margin-bottom: 10px;
+}
+
+.data-link {
+    display: inline-block;
+    margin-top: 20px;
+    background: #d35400;
+    color: white;
+    padding: 10px 15px;
+    border-radius: 5px;
+    transition: background 0.3s ease;
+}
+
+.data-link:hover {
+    background: #a84300;
+}
+
+
+
 /* Footer */
 footer {
     background: #333;

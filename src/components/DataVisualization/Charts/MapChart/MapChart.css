@@ -6,14 +6,17 @@
 
 .switch-btn {
     position: absolute;
-    top: 10px;
     right: 10px;
-    font-size: 24px;
+    top: 10px;
     z-index: 99;
-    width: 30px;
-    height: 30px;
-    border: 1px solid black;
+    width: 40px;
+    height: 40px;
+    border: 1px solid #005d89;
     border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
 }
 
 .switch-btn:focus {
@@ -25,9 +28,27 @@
 }
 
 .chart-icon {
-    width: 30px;
-    height: 30px;
+    width: 33px;
+    height: 33px;
     border-radius: 50%;
+}
+
+
+.chart-icon-round {
+    width: 33px;
+    height: 33px;
+    border-radius: 50%;
+    animation: rotateMap 10s linear infinite;
+}
+
+@keyframes rotateMap {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 
@@ -37,14 +58,24 @@
 }
 
 .selected-year-container {
-    margin: 12px 0;
     width: 100%;
+    background-color: #fff;
     text-align: center;
+    padding: 10px 10px;
+    margin-bottom: 2px;
+    margin-top: 16px;
+    border-radius: 8px;
 }
 
 .selected-year-container h4 {
     font-size: 1.2rem;
     margin-bottom: 12px;
+}
+
+.world-map-controls {
+    max-width: 1200px;
+    margin: 0 auto;
+    position: relative;
 }
 
 .selected-year-sliders {
@@ -69,7 +100,8 @@
     -webkit-appearance: none;
     width: 100%;
     height: 5px;
-    background: #ddd;
+    background: #89cff0;
+    /* Water-like blue */
     outline: none;
     border-radius: 5px;
 }
@@ -80,7 +112,8 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #333;
+    background: #0077be;
+    /* Deeper blue for the thumb */
     cursor: pointer;
 }
 
@@ -88,6 +121,7 @@
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #333;
+    background: #0077be;
+    /* Deeper blue for the thumb */
     cursor: pointer;
 }

@@ -53,38 +53,28 @@ const MapChart = ({
 
     return (
         <div className="map-chart-container">
-            <button
-                className="switch-btn"
-                onClick={handleSwitch}
-                aria-label={flatMap ? 'Switch to round map' : 'Switch to flat map'}
-            >
-                {flatMap ? (
-                    <img
-                        src="/assets/images/flat-map-icon.png"
-                        alt="flat map icon"
-                        className="chart-icon"
-                    />
-                ) : (
-                    <img
-                        src="/assets/images/earth-icon.png"
-                        alt="earth icon"
-                        className="chart-icon"
-                    />
-                )}
-            </button>
-
-            <div className="selected-year-container">
-                <h4>Selected Year: {selectedYear}</h4>
-                <div className="selected-year-sliders">
-                    <div className="slider">
-                        <input
-                            id="minYear"
-                            type="range"
-                            min="1967"
-                            max="2021"
-                            value={selectedYear}
-                            onChange={handleYearSelection}
+            <div className="world-map-controls">
+                <button
+                    className="switch-btn"
+                    onClick={handleSwitch}
+                    aria-label={flatMap ? 'Switch to round map' : 'Switch to flat map'}
+                >
+                    {!flatMap ? (
+                        <img src="/assets/images/flat-map-icon.png" alt="flat map icon" className="chart-icon"
                         />
+                    ) : (
+                        <img src="/assets/images/earth-map-icon.png" alt="earth icon" className="chart-icon chart-icon-round"
+                        />
+                    )}
+                </button>
+
+                <div className="selected-year-container">
+                    <h4>Selected Year: {selectedYear}</h4>
+                    <div className="selected-year-sliders">
+                        <div className="slider">
+                            <input id="minYear" type="range" min="1967" max="2021" value={selectedYear} onChange={handleYearSelection}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>

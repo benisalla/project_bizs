@@ -3,6 +3,11 @@
   overflow-y: hidden;
   overflow-x: hidden;
   padding-top: 60px;
+  background: repeating-linear-gradient(45deg,
+      #d8e5fd 0px,
+      #d8e5fd 60px,
+      #cedffe 60px,
+      #cedffe 120px);
 }
 
 .main-nav {

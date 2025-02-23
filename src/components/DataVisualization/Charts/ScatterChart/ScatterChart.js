@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import "./ScatterChart.css";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
 import EditableText from "../../../MicroComponents/EditableText";
+import * as ss from "simple-statistics";
 
 // A tooltip helper function for population.
 const getScatterTooltipHtml = (d) => {
@@ -170,8 +171,8 @@ const ScatterChart = ({ data }) => {
             .attr("cx", d => showPopulation ? xScale(d.Population) : xScale(d.Temper))
             .attr("cy", d => yScale(d.Value))
             .attr("r", 6)
-            .attr("fill", "orange")
-            .attr("stroke", "#333")
+            .attr("fill", "blue")
+            .attr("stroke", "black")
             .attr("stroke-width", 0.5)
             .on("mouseover", function (event, d) {
                 d3.select(this).attr("r", 10);
@@ -197,28 +198,61 @@ const ScatterChart = ({ data }) => {
                     .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
             });
 
-        // Add a legend.
-        const legendData = [
-            { name: "Water Value", color: "orange" },
-            { name: showPopulation ? "Population" : "Temperature", color: showPopulation ? "darkblue" : "red" }
-        ];
-        const legend = svg.selectAll(".legend")
-            .data(legendData)
-            .enter()
-            .append("g")
-            .attr("class", "legend")
-            .attr("transform", (_, i) => `translate(${width - 100}, ${i * 20})`);
-        legend.append("rect")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", 12)
-            .attr("height", 12)
-            .style("fill", d => d.color);
-        legend.append("text")
-            .attr("x", 18)
-            .attr("y", 10)
-            .style("font-size", "12px")
-            .text(d => d.name);
+        // // Add a legend.
+        // const legendData = [
+        //     { name: "Water Value", color: "orange" },
+        //     { name: showPopulation ? "Population" : "Temperature", color: showPopulation ? "darkblue" : "red" }
+        // ];
+        // const legend = svg.selectAll(".legend")
+        //     .data(legendData)
+        //     .enter()
+        //     .append("g")
+        //     .attr("class", "legend")
+        //     .attr("transform", (_, i) => `translate(${width - 100}, ${i * 20})`);
+        // legend.append("rect")
+        //     .attr("x", 0)
+        //     .attr("y", 0)
+        //     .attr("width", 12)
+        //     .attr("height", 12)
+        //     .style("fill", d => d.color);
+        // legend.append("text")
+        //     .attr("x", 18)
+        //     .attr("y", 10)
+        //     .style("font-size", "12px")
+        //     .text(d => d.name);
+
+        // Compute regression line data based on the scatter points.
+        const regressionData = mergedData.map(d => [
+            showPopulation ? d.Population : d.Temper,
+            d.Value
+        ]);
+
+        if (regressionData.length > 1) {
+            // Calculate linear regression parameters.
+            const regression = ss.linearRegression(regressionData);
+            const regressionLine = ss.linearRegressionLine(regression);
+
+            // Determine the domain for the regression line.
+            const xMin = d3.min(regressionData, d => d[0]);
+            const xMax = d3.max(regressionData, d => d[0]);
+
+            // Build the line data from the min and max x values.
+            const lineData = [
+                { x: xMin, y: regressionLine(xMin) },
+                { x: xMax, y: regressionLine(xMax) }
+            ];
+
+            // Draw the regression line.
+            svg.append("path")
+                .datum(lineData)
+                .attr("fill", "none")
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("d", d3.line()
+                    .x(d => xScale(d.x))
+                    .y(d => yScale(d.y))
+                );
+        }
     }, [data, waterType, minMaxYear, showPopulation]);
 
     useEffect(() => {
