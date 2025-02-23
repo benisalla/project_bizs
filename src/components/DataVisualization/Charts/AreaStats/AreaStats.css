@@ -162,3 +162,7 @@
     color: #005f8d;
     min-width: 150px;
 }
+
+.water-toggle-container {
+    gap: 6px;
+}
