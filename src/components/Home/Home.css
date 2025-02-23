@@ -280,17 +280,16 @@ body {
 
 .sheet-images {
     display: flex;
-    flex-wrap: wrap;
     gap: 20px;
-    margin-top: 20px;
+    margin-bottom: 20px;
 }
 
 .sheet-image {
-    flex: 1 1 45%;
-    max-width: 100%;
-    border: 1px solid #ccc;
+    flex: 1 1;
+    max-width: 48%;
     border-radius: 8px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    max-height: 400px;
 }
 
 /* Responsive adjustments */
