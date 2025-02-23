@@ -1,40 +1,16 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import * as d3 from 'd3';
 import './RoundMap.css';
-import ChartSelector from '../../Modals/ChartSelector';
-import LineChart from '../LineChart/LineChart';
-import AreaStats from '../AreaStats/AreaStats';
-import { filterWaterDataByCountry, filterPupulationDataByCountry } from '../../../APIs/DataUtils';
-import BarChart from '../BarChart/BarChart';
 
 
-const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
+const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
   const svgRef = useRef();
   const tooltipRef = useRef();
   const baseScaleRef = useRef(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
-  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [dimensions, setDimensions] = useState({ width: null, height: null });
   const [zoomScale, setZoomScale] = useState(1);
-  const [selectedCountry, setSelectedCountry] = useState(null);
-  const [isLineChartOpen, setIsLineChartOpen] = useState(false);
-  const [lineData, setLineData] = useState({
-    lineData: [],
-    popuData: [],
-  });
-  const [isChartSelectorOpen, setIsChartSelectorOpen] = useState(false);
-  const [isAreaStatsOpen, setIsAreaStatsOpen] = useState(false);
-  const [selectedChart, setSelectedChart] = useState(null);
-  const [areaStatsData, setAreaStatsData] = useState([]);
-  const [isScatterChartOpen, setIsScatterChartOpen] = useState(false);
-  const [barData, setBarData] = useState({
-    barData: [],
-    popuData: [],
-  });
-  const [isBarChartOpen, setIsBarChartOpen] = useState(false);
-  const [filteredDataByCountry, setFilteredDataByCountry] = useState([]);
-  const [filteredDataByYear, setFilteredDataByYear] = useState([]);
-  const [filteredDataByCountryAndYear, setFilteredDataByCountryAndYear] = useState([]);
 
   function getSimpleStatsTooltip(feature, waterData) {
     const { formal_en, UnifiedName } = feature.properties;
@@ -109,19 +85,48 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   }, [rotation]);
 
   useEffect(() => {
-    if (roundGeoJson) {
-      const totalValues = roundGeoJson.features.map(d => d.properties.waterQTbyYear || 0);
-      const minTotal = d3.min(totalValues);
-      const maxTotal = d3.max(totalValues);
+    if (roundGeoJson && waterData) {
+      // Rollup the filtered waterData by UnifiedName for the selected year
+      const rollupWater = d3.rollups(
+        waterData,
+        v => d3.sum(v, d => d.Value),
+        d => d.UnifiedName
+      );
+      const waterByName = {};
+      rollupWater.forEach(([countryName, totalValue]) => {
+        waterByName[countryName] = totalValue;
+      });
+      const waterValues = Object.values(waterByName);
+      const minTotal = d3.min(waterValues) || 0;
+      const maxTotal = d3.max(waterValues) || 0;
 
-      // colorscale for the countries
+      // Create a color scale
+      const numStops = 10;
+      const domainStops = d3.range(numStops).map(i => minTotal + i * (maxTotal - minTotal) / (numStops - 1));
+      const rangeColors = ["#ff0000", "#ff3333", "#ff6666", "#ff9999", "#ffcccc", "#ccccff", "#9999ff", "#6666ff", "#3333ff", "#0000ff"];
       const colorScale = d3.scaleLinear()
-        .domain([minTotal, (minTotal + maxTotal) / 2, maxTotal])
-        .range(["red", "yellow", "blue"])
+        .domain(domainStops)
+        .range(rangeColors)
         .interpolate(d3.interpolateRgb);
 
-      const width = dimensions.width;
-      const height = dimensions.height;
+      // if (dimensions.width === null || dimensions.height === null) {
+      //   setDimensions({ width: window.innerWidth, height: window.innerHeight });
+      // }
+
+      // const width = dimensions.width;
+      // const height = dimensions.height;
+
+
+      const svgElement = svgRef.current;
+      if (!svgElement._dimensions) {
+        const containerElement = svgElement.parentNode;
+        const containerWidth = containerElement.clientWidth || 960;
+        const containerHeight = containerElement.clientHeight || 620;
+        svgElement._dimensions = {
+          width: containerWidth, height: containerHeight
+        };
+      }
+      const { width, height } = svgElement._dimensions;
 
       const svg = d3.select(svgRef.current)
         .attr('width', width)
@@ -156,48 +161,47 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
         .data(roundGeoJson.features)
         .enter().append('path')
         .attr('d', path)
-        // .style('fill', '#997ffa')
-        .style('fill', d => colorScale(d.properties.waterQTbyYear))
+        .style('fill', d => {
+          const value = waterByName[d.properties.UnifiedName];
+          return colorScale(value !== undefined ? value : 0);
+        })
+        .style('stroke-width', 0.5)
         .style('stroke', '#060a0f')
         .attr('class', 'country')
         .on('mouseover', function (e, d) {
-          const tooltipHtml = getSimpleStatsTooltip(d, waterData);
           d3.select(tooltipRef.current)
             .style('visibility', 'visible')
             .style('opacity', 1)
-            .html(tooltipHtml);
+            .html(getSimpleStatsTooltip(d, waterData));
 
           d3.select(this)
             .transition()
             .duration(300)
             .style('fill', '#5f3fb3');
-
-          svg.selectAll('.country')
-            .filter(function () { return this !== d3.select(this).node(); })
-            .transition()
-            .duration(300)
-            .style('fill', '#997ffa');
         })
         .on('mousemove', function (event) {
           d3.select(tooltipRef.current)
             .style('left', (event.pageX + 10) + 'px')
             .style('top', (event.pageY + 10) + 'px');
         })
-        .on('mouseout', function () {
+        .on('mouseout', function (e, d) {
           d3.select(tooltipRef.current)
             .style('visibility', 'hidden')
             .style('opacity', 0);
           d3.select(this)
             .transition()
             .duration(300)
-            .style('fill', '#997ffa');
+            .style('fill', () => {
+              const value = waterByName[d.properties.UnifiedName];
+              return colorScale(value !== undefined ? value : 0);
+            });
         })
         .on('mousedown', (e, d) => {
           e.stopPropagation();
-          setSelectedCountry(d.properties.UnifiedName);
-          console.log("Selected country:", d.properties.UnifiedName);
+          if (onCountryClick) {
+            onCountryClick(d.properties.UnifiedName);
+          }
         })
-
 
       let animationFrameId;
 
@@ -256,6 +260,9 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
       // initial update of the globe
       updateGlobe(svg, path, graticule, projection);
 
+      // draw legend
+      drawLegend(svg, colorScale, minTotal, maxTotal);
+
       // clean up
       return () => {
         svg.on('mousedown', null)
@@ -264,6 +271,7 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
           .on('mousemove', null);
       };
     }
+
   }, [
     roundGeoJson,
     isMouseDown,
@@ -274,57 +282,72 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
   ]);
 
 
-  // ==============================================
-  //           Use Effects for Chart Selection
-  // ==============================================
-  useEffect(() => {
-    if (selectedCountry && waterData.length > 0) {
-      setIsChartSelectorOpen(true);
-    }
-  }, [selectedCountry]);
+  function drawLegend(svg, colorScale, minTotal, maxTotal) {
+    // Remove any old legend
+    svg.select(".legend").remove();
 
+    const legendWidth = 10;
+    const legendHeight = 250;
+    const legendX = dimensions.width - 70;
+    const legendY = 100;
 
-  // ==============================================
-  //           Use Effects for Chart Selection
-  // ==============================================
-  useEffect(() => {
-    if (selectedChart === 'LineChart') {
-      const lineData = filterWaterDataByCountry(selectedCountry, waterData);
-      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setLineData({ lineData, popuData });
-      setIsLineChartOpen(true);
-      setSelectedChart(null);
-    }
+    const legend = svg.append("g")
+      .attr("class", "legend")
+      .attr("transform", `translate(${legendX},${legendY})`);
 
-    if (selectedChart === 'ScatterChart') {
-      setIsScatterChartOpen(true);
-      setSelectedChart(null);
-    }
+    let defs = svg.select("defs");
+    if (defs.empty()) defs = svg.append("defs");
+    defs.selectAll("#legend-gradient").remove();
 
-    if (selectedChart === 'AreaStats') {
-      const area_stats_data = filterWaterDataByCountry(selectedCountry, waterData);
-      setAreaStatsData(area_stats_data);
-      setIsAreaStatsOpen(true);
-      setSelectedChart(null);
-    }
+    const gradient = defs.append("linearGradient")
+      .attr("id", "legend-gradient")
+      .attr("x1", "0%").attr("x2", "0%")
+      .attr("y1", "100%").attr("y2", "0%");
 
-    if (selectedChart === 'BarChart') {
-      const barData = filterWaterDataByCountry(selectedCountry, waterData);
-      const popuData = filterPupulationDataByCountry(selectedCountry, populationData);
-      setBarData({ barData, popuData });
-      setIsBarChartOpen(true);
-      setSelectedChart(null);
-    }
-  }, [selectedChart]);
+    const numStops = 10;
+    const stops = d3.range(numStops).map(i => minTotal + i * (maxTotal - minTotal) / (numStops - 1));
+    const stopPercents = d3.range(numStops).map(i => `${(i / (numStops - 1)) * 100}%`);
 
+    stops.forEach((d, i) => {
+      gradient.append("stop")
+        .attr("offset", stopPercents[i])
+        .attr("stop-color", colorScale(d));
+    });
 
-  // ==============================================
-  //          Handlers for Chart Selector
-  // ==============================================
-  const handleSelectChart = (chartType) => {
-    setSelectedChart(chartType);
-    setIsChartSelectorOpen(false);
-  };
+    legend.append("rect")
+      .attr("width", legendWidth)
+      .attr("height", legendHeight)
+      .style("fill", "url(#legend-gradient)");
+
+    const legendScale = d3.scaleLinear()
+      .domain([minTotal, maxTotal])
+      .range([legendHeight, 0]);
+
+    const legendAxis = d3.axisRight(legendScale)
+      .ticks(10)
+      .tickSize(6);
+
+    legend.append("g")
+      .attr("transform", `translate(${legendWidth},0)`)
+      .call(legendAxis);
+
+    // "Water Quantity" box - centered horizontally under the legend label in the middle
+    legend.append("rect")
+      .attr("x", -50) // Centers a 100px wide rect on the legend origin
+      .attr("y", legendHeight + 10)
+      .attr("width", 100)
+      .attr("height", 20)
+      .style("fill", "lightgray");
+
+    // Text label inside the "Water Quantity" box, centered horizontally
+    legend.append("text")
+      .attr("x", 0) // Center text relative to the box
+      .attr("y", legendHeight + 10 + 10) // Center vertically in the 20px tall box
+      .attr("text-anchor", "middle")
+      .text("Water Quantity")
+      .style("font-size", "12px")
+      .attr("dy", "0.35em");
+  }
 
 
   return (
@@ -333,50 +356,6 @@ const RoundMap = ({ roundGeoJson, waterData, populationData }) => {
         <svg ref={svgRef}></svg>
         <div ref={tooltipRef} className="map-tooltip"></div>
       </div>
-
-      {/* here we select the chart we want */}
-      <ChartSelector
-        isOpen={isChartSelectorOpen}
-        onClose={() => {
-          setIsChartSelectorOpen(false);
-          setSelectedCountry(null);
-        }}
-        onSelect={handleSelectChart}
-      />
-
-      {/* line chart */}
-      <LineChart
-        title={`Line Chart of ${selectedCountry}`}
-        data={lineData}
-        isOpen={isLineChartOpen}
-        onClose={() => {
-          setIsLineChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Bar Chart */}
-      <BarChart
-        data={barData}
-        title={`Bar Chart of ${selectedCountry}`}
-        isOpen={isBarChartOpen}
-        onClose={() => {
-          setIsBarChartOpen(false);
-          setSelectedCountry(null);
-        }}
-      />
-
-      {/* Area Stats */}
-      <AreaStats
-        isOpen={isAreaStatsOpen}
-        onClose={() => {
-          setIsAreaStatsOpen(false);
-          setSelectedCountry(null);
-        }}
-        areaData={areaStatsData}
-        title={`${selectedCountry} Statistics`}
-      />
-
     </>
   );
 };

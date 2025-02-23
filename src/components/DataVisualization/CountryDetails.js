@@ -1,66 +1,179 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, use } from "react";
 import * as d3 from "d3";
-import { useParams } from "react-router-dom";
 import "./CountryDetails.css";
 import CountryMap from "./Charts/MapChart/CountryMap";
-import { filterWaterDataByCountry, filterPupulationDataByCountry } from "../APIs/DataUtils";
+import { filterWaterDataByCountry } from "../APIs/DataUtils";
+import { useLoader } from "../APIs/Reducer";
+import LineChart from "./Charts/LineChart/LineChart";
+import BarChart from "./Charts/BarChart/BarChart";
+import ScatterChart from "./Charts/ScatterChart/ScatterChart";
+import AreaStats from "./Charts/AreaStats/AreaStats";
+// import TreeMapChart from "./Charts/TreeMapChart/TreeMapChart";
+import { ArrowBack } from "@mui/icons-material";
+import { PictureAsPdf } from "@mui/icons-material";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 
-const CountryDetails = ({ code2CountryMapping, countryUnifiedName, waterData, populationData, onBack }) => {
+const CountryDetails = ({
+  code2CountryMapping,
+  curr_country_code,
+  waterData,
+  populationData,
+  temperatureData,
+  onBack }) => {
+
   const [countryGeoJson, setCountryGeoJson] = useState(null);
-  const [statsData, setStatsData] = useState(null);
-  const [lineData, setLineData] = useState({ lineData: [], popuData: [] });
-  const [barData, setBarData] = useState({ barData: [], popuData: [] });
-  const [scatterData, setScatterData] = useState({ scatterData: [], popuData: [] });
+  const [filteredData, setFilteredData] = useState({ "waterData": [], "popuData": [] });
   const [isLoaded, setIsLoaded] = useState(false);
+  const { showLoader, hideLoader } = useLoader();
 
   useEffect(() => {
-    const countryCode = code2CountryMapping[countryUnifiedName];
-    console.log("Country code: ", countryCode);
-    if (countryCode) {
-      d3.json(`/assets/dataset/countries/${countryCode}.json`).then((geoJsonData) => {
-        console.log("GeoJson data: ", geoJsonData);
+    showLoader();
+    const countryName = code2CountryMapping[curr_country_code];
+    if (countryName) {
+      d3.json(`/assets/dataset/countries/${curr_country_code}.json`).then((geoJsonData) => {
         setCountryGeoJson(geoJsonData);
         setIsLoaded(true);
       });
     }
-  }, [countryUnifiedName]);
+  }, [curr_country_code]);
 
   // Prepare filtered data for charts and statistics.
   useEffect(() => {
-    if (waterData && populationData) {
-      const filteredWater = filterWaterDataByCountry(countryUnifiedName, waterData);
-      const filteredPop = filterPupulationDataByCountry(countryUnifiedName, populationData);
-      setLineData({ lineData: filteredWater, popuData: filteredPop });
-      setBarData({ barData: filteredWater, popuData: filteredPop });
-      setScatterData({ scatterData: filteredWater, popuData: filteredPop });
-      setStatsData(filteredWater);
+    if (waterData && populationData && temperatureData) {
+      const filteredWater = filterWaterDataByCountry(curr_country_code, waterData);
+      const filteredPop = [populationData[curr_country_code]] || [];
+      const filteredTemp = [temperatureData[curr_country_code]] || [];
+      setFilteredData({ "waterData": filteredWater, "popuData": filteredPop, "tempData": filteredTemp });
     }
-  }, [countryUnifiedName, waterData, populationData]);
+  }, [curr_country_code, waterData, populationData]);
 
+  useEffect(() => {
+    if (code2CountryMapping) {
+      hideLoader();
+    }
+  }
+    , [code2CountryMapping]);
+
+  // Function to add one section to the PDF, splitting into multiple pages if needed.
+  const addSectionToPdf = async (pdf, element) => {
+    const canvas = await html2canvas(element, { scale: 2 });
+    const imgData = canvas.toDataURL("image/png");
+    const pdfPageWidth = pdf.internal.pageSize.getWidth();
+    const pdfPageHeight = pdf.internal.pageSize.getHeight();
+    const imgWidth = pdfPageWidth;
+    const imgHeight = (canvas.height * pdfPageWidth) / canvas.width;
+    let heightLeft = imgHeight;
+    let position = 0;
+    pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+    heightLeft -= pdfPageHeight;
+    while (heightLeft > 0) {
+      position = heightLeft - imgHeight;
+      pdf.addPage();
+      pdf.addImage(imgData, "PNG", 0, position, imgWidth, imgHeight);
+      heightLeft -= pdfPageHeight;
+    }
+  };
+
+  const handleDownloadPdf = async () => {
+    console.log("Generating PDF...");
+    try {
+      const pdf = new jsPDF("p", "mm", "a4");
+      const sectionIds = [
+        "page-header",
+        "line-chart",
+        "bar-chart",
+        "scatter-chart",
+        "page-statistics",
+      ];
+
+      for (let i = 0; i < sectionIds.length; i++) {
+        const element = document.getElementById(sectionIds[i]);
+        if (!element) continue;
+        await addSectionToPdf(pdf, element);
+        if (i < sectionIds.length - 1) {
+          pdf.addPage();
+        }
+      }
+      const countryName = code2CountryMapping[curr_country_code] || "UnknownCountry";
+      pdf.save(`report_of_${countryName}.pdf`);
+    } catch (error) {
+      console.error("Error generating PDF:", error);
+    }
+  };
+
+
+  if (!isLoaded) {
+    return <p>Loading...</p>;
+  }
   return (
-    <div className="country-details-container">
-      <div className="back-button-container">
-        <button className="back-button" onClick={onBack}>← Back to Map</button>
-      </div>
-
-      <div className="country-header">
-        <div className="country-map">
-          {code2CountryMapping ? (
-            <CountryMap countryGeoJson={countryGeoJson} />
-          ) : (
-            <div>Loading map...</div>
-          )}
+    <div id="country-details-container" className="country-details-container">
+      <section id="page-header" className="page-header">
+        <div className="back-button-container">
+          <button className="back-button" onClick={onBack}>
+            <ArrowBack style={{ fontSize: "24px", color: "white" }} />
+          </button>
+          <button className="pdf-button" onClick={handleDownloadPdf}>
+            <PictureAsPdf style={{ fontSize: "24px", color: "white" }} />
+          </button>
         </div>
-      </div>
+
+        <div className="country-header">
+          <div className="country-map">
+            {code2CountryMapping ? (
+              <CountryMap
+                countryGeoJson={countryGeoJson}
+                country_name={code2CountryMapping[curr_country_code]}
+              />
+            ) : (
+              <p>Loading...</p>
+            )}
+          </div>
+        </div>
+      </section>
 
       <section className="country-charts">
-        <p>Dummy text for testing purposes</p>
+        {(filteredData.waterData.length === 0 ||
+          filteredData.tempData.length === 0 ||
+          filteredData.popuData.length === 0) ? (
+          <p>No data found for the selected country.</p>
+        ) : (
+          <>
+            <LineChart
+              title={`Line Chart of ${curr_country_code}`}
+              data={filteredData}
+              width={800}
+              height={400}
+            />
+
+            <BarChart
+              data={filteredData}
+              title={`Bar Chart of ${curr_country_code}`}
+              width={800}
+              height={400}
+            />
+
+            <ScatterChart
+              title={`Scatter Chart of ${curr_country_code}`}
+              data={filteredData}
+              width={800}
+              height={400}
+            />
+
+          </>
+        )}
       </section>
 
-      <section className="charts-section">
-        <p>Dummy object: {JSON.stringify({ key: "value" })}</p>
+
+      <section id="page-statistics" className="statistics-section">
+        <AreaStats
+          data={filteredData}
+          countryName={code2CountryMapping[curr_country_code]}
+        />
       </section>
+
+
     </div>
   );
 };

@@ -1,11 +1,10 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import * as d3 from "d3";
-import Modal from "react-modal";
 import "./LineChart.css";
 import { groupWaterDataByYear } from "../../../APIs/DataUtils";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
+import EditableText from "../../../MicroComponents/EditableText";
 
-Modal.setAppElement("#root");
 
 // A tooltip helper function similar to the one in BarChart.
 const getTooltipHtml = (d) => {
@@ -17,21 +16,56 @@ const getTooltipHtml = (d) => {
   `;
 };
 
-const LineChart = ({ data, title, isOpen, onClose }) => {
-    const svgRef = useRef();
+// tooltip for population and temperature
+const getTooltipHtmlPopulation = (d) => {
+    return `
+    <div class="tooltip-content">
+        <strong>Year:</strong> ${d.Year}<br/>
+        <strong>Population:</strong> ${d.Population}<br/>
+    </div>
+    `;
+};
+
+// tooltip for temperature
+const getTooltipHtmlTemperature = (d) => {
+    return `
+    <div class="tooltip-content">
+        <strong>Year:</strong> ${d.Year}<br/>
+        <strong>Temperature:</strong> ${d.Temper}<br/>  
+    </div>
+    `;
+};
+
+const LineChart = ({ data }) => {
+    const lineSvgRef = useRef();
     const tooltipRef = useRef();
     const [showUsage, setShowUsage] = useState(true);
-    const [showResource, setShowResource] = useState(true);
+    const [showPopulation, setShowPopulation] = useState(true);
     const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
+    const [title, setTitle] = useState("Line Chart of Water Usage & Population");
+    const [description, setDescription] = useState(
+        `<p>This line chart visualizes the relationship between <span style="color: #007bff;">water usage</span> and <span style="color: #000066;">population growth</span> over time.</p>
+        
+        <p><strong>Insights:</strong></p>
+        <ul>
+            <li>Tracks <span style="color: #007bff;">water consumption trends</span> and their fluctuations.</li>
+            <li>Highlights the steady increase in <span style="color: #000066;">population</span> and its impact on resources.</li>
+            <li>Provides a clear perspective for analyzing sustainability and resource management.</li>
+        </ul>
+        
+        <p><strong>Application:</strong> Useful for researchers, and urban planners to optimize water resource allocation based on demographic changes.</p>`
+    );
 
     const drawChart = useCallback(() => {
-        if (!svgRef.current || !data) return;
+        if (!lineSvgRef.current || !data || !data.waterData || !data.popuData) return;
 
-        // Destructure water and population data.
-        const { lineData, popuData } = data;
+        setTitle("Line Chart of Water " + (showUsage ? "Usage" : "Resource") + " & " + (showPopulation ? "Population" : "Temperature"));
+
+        // Destructure water and population data and set default values to avoid errors if empty.
+        const { waterData = [], popuData = [{}], tempData = [{}] } = data;
 
         // Filter water data based on selected year range.
-        const filteredData = lineData.filter(
+        const filteredData = waterData.filter(
             (d) => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]
         );
 
@@ -47,20 +81,35 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
             .map(([year, value]) => ({ Year: +year, Population: +value }))
             .filter((d) => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]);
 
-        // Get responsive dimensions.
-        const containerElement = svgRef.current.parentNode;
-        const containerWidth = containerElement.clientWidth || 750;
-        const containerHeight = containerElement.clientHeight || 450;
-        const margin = { top: 80, right: 60, bottom: 80, left: 60 };
-        const width = containerWidth - margin.left - margin.right;
-        const height = containerHeight - margin.top - margin.bottom;
+        // Process temperature data.
+        const tempDataArray = Object.entries(tempData[0])
+            .filter(([key]) => !isNaN(key))
+            .map(([year, value]) => ({ Year: +year, Temper: +value, }))
+            .filter((d) => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]);
+
+
+        // Compute dimensions just once and cache them on the svg element.
+        if (!lineSvgRef.current._dimensions) {
+            const containerElement = lineSvgRef.current.parentNode;
+            const containerWidth = containerElement.clientWidth || 350;
+            const containerHeight = containerElement.clientHeight || 250;
+            const margin = { top: 60, right: 0, bottom: 35, left: 0 };
+            lineSvgRef.current._dimensions = {
+                containerWidth,
+                containerHeight,
+                margin,
+                width: containerWidth - margin.left - margin.right,
+                height: containerHeight - margin.top - margin.bottom,
+            };
+        }
+        const { containerWidth, containerHeight, margin, width, height } = lineSvgRef.current._dimensions;
 
         // Clear any previous SVG content.
-        d3.select(svgRef.current).selectAll("*").remove();
+        d3.select(lineSvgRef.current).selectAll("*").remove();
 
         // Set up the responsive SVG.
         const svg = d3
-            .select(svgRef.current)
+            .select(lineSvgRef.current)
             .attr("width", "100%")
             .attr("height", "100%")
             .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
@@ -68,12 +117,13 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
             .append("g")
             .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
-        // Build a complete list of years from usage, resource, and population data.
+        // Build a complete list of years from all data sources.
         const allYears = Array.from(
             new Set([
                 ...usageByYear.map((d) => d.Year),
                 ...resourceByYear.map((d) => d.Year),
                 ...popuDataArray.map((d) => d.Year),
+                ...tempDataArray.map((d) => d.Year),
             ])
         ).sort((a, b) => a - b);
 
@@ -107,6 +157,15 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
             .nice()
             .range([height, 0]);
 
+        // Create a scale for temperature (using "Temper" property).
+        const maxTemperature = d3.max(tempDataArray, (d) => d.Temper) || 0;
+        const minTemperature = d3.min(tempDataArray, (d) => d.Temper) || 0;
+        const yScaleTemperature = d3
+            .scaleLinear()
+            .domain([minTemperature, maxTemperature])
+            .nice()
+            .range([height, 0]);
+
         // Add Chart Title.
         svg
             .append("text")
@@ -128,13 +187,23 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
             .style("text-anchor", "end");
 
         // Draw the y axes.
-        svg.append("g").attr("class", "y-axis-left").call(d3.axisLeft(yScaleUsage));
-        svg
-            .append("g")
-            .attr("class", "y-axis-right")
-            .attr("transform", `translate(${width}, 0)`)
-            .call(d3.axisRight(yScaleResource));
-        // Optionally, you could add a third axis for population if desired.
+        svg.append("g").attr("class", "y-axis-left").call(d3.axisLeft(showUsage ? yScaleUsage : yScaleResource));
+        if (showPopulation) {
+            svg
+                .append("g")
+                .attr("class", "y-axis-right")
+                .attr("transform", `translate(${width}, 0)`)
+                .call(d3.axisRight(yScalePopulation));
+        } else {
+            svg
+                .append("g")
+                .attr("class", "y-axis-right")
+                .attr("transform", `translate(${width}, 0)`)
+                .call(d3
+                    .axisRight(yScaleTemperature)
+                    .ticks(20)
+                    .tickFormat(d3.format(".4f")));
+        }
 
         // Create line generators.
         const usageLineGenerator = d3
@@ -153,6 +222,13 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
             .line()
             .x((d) => xScale(String(d.Year)) + xScale.bandwidth() / 2)
             .y((d) => yScalePopulation(d.Population))
+            .curve(d3.curveMonotoneX);
+
+        // NEW: Create a line generator for temperature data.
+        const temperatureLineGenerator = d3
+            .line()
+            .x((d) => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+            .y((d) => yScaleTemperature(d.Temper))
             .curve(d3.curveMonotoneX);
 
         // Draw the USAGE line (if toggled on).
@@ -178,7 +254,7 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
         }
 
         // Draw the RESOURCE line (if toggled on).
-        if (showResource && resourceByYear.length) {
+        if (!showUsage && resourceByYear.length) {
             svg
                 .append("path")
                 .datum(resourceByYear)
@@ -214,31 +290,26 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
                     d3.select(this).attr("r", 8);
                     const tooltipHtml = getTooltipHtml(d);
                     d3.select(tooltipRef.current)
-                        .style("visibility", "visible")
                         .html(tooltipHtml)
-                        .transition()
-                        .duration(200)
+                        .style("visibility", "visible")
                         .style("opacity", 0.9);
                 })
                 .on("mousemove", function (event) {
+                    const [x, y] = d3.pointer(event, this.parentNode);
                     d3.select(tooltipRef.current)
-                        .style("top", event.pageY - 80 + "px")
-                        .style("left", event.pageX - 230 + "px");
+                        .style("top", (y + 10) + "px")
+                        .style("left", (x + 10) + "px");
                 })
                 .on("mouseout", function () {
                     d3.select(this).attr("r", 4);
                     d3.select(tooltipRef.current)
-                        .transition()
-                        .duration(200)
                         .style("opacity", 0)
-                        .on("end", () =>
-                            d3.select(tooltipRef.current).style("visibility", "hidden")
-                        );
+                        .style("visibility", "hidden");
                 });
         }
 
         // Draw circles with hover events for RESOURCE data.
-        if (showResource) {
+        if (!showUsage) {
             svg
                 .selectAll(".circle-resource")
                 .data(resourceByYear)
@@ -260,9 +331,10 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
                         .style("opacity", 0.9);
                 })
                 .on("mousemove", function (event) {
+                    const [x, y] = d3.pointer(event, this.parentNode);
                     d3.select(tooltipRef.current)
-                        .style("top", event.pageY - 80 + "px")
-                        .style("left", event.pageX - 230 + "px");
+                        .style("top", (y + 10) + "px")
+                        .style("left", (x + 10) + "px");
                 })
                 .on("mouseout", function () {
                     d3.select(this).attr("r", 4);
@@ -276,53 +348,99 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
                 });
         }
 
-        // Draw the population line.
-        svg.append("path")
-            .datum(popuDataArray)
-            .attr("class", "population-line")
-            .attr("fill", "none")
-            .attr("stroke", "darkblue")
-            .attr("stroke-width", 2)
-            .attr("d", populationLineGenerator);
+        // Draw temperature or population line.
+        if (showPopulation) {
+            // Draw the population line.
+            svg.append("path")
+                .datum(popuDataArray)
+                .attr("class", "population-line")
+                .attr("fill", "none")
+                .attr("stroke", "darkblue")
+                .attr("stroke-width", 2)
+                .attr("d", populationLineGenerator);
 
-        // Draw population circles with tooltips.
-        svg.selectAll(".population-circle")
-            .data(popuDataArray)
-            .enter()
-            .append("circle")
-            .attr("class", "population-circle")
-            .attr("cx", d => xScale(String(d.Year)) + xScale.bandwidth() / 2)
-            .attr("cy", d => yScalePopulation(d.Population))
-            .attr("r", 3)
-            .attr("fill", "darkblue")
-            .on("mouseover", (event, d) => {
-                const tooltipHtml = `
-          <div class="tooltip-content">
-            <strong>Year:</strong> ${d.Year}<br/>
-            <strong>Population:</strong> ${d.Population.toLocaleString()}
-          </div>`;
-                d3.select(tooltipRef.current)
-                    .style("visibility", "visible")
-                    .html(tooltipHtml)
-                    .transition().duration(200).style("opacity", 0.9);
-            })
-            .on("mousemove", (event) => {
-                d3.select(tooltipRef.current)
-                    .style("top", (event.pageY - 80) + "px")
-                    .style("left", (event.pageX - 230) + "px");
-            })
-            .on("mouseout", () => {
-                d3.select(tooltipRef.current)
-                    .transition().duration(200)
-                    .style("opacity", 0)
-                    .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
-            });
+            // Draw population circles with tooltips.
+            svg
+                .selectAll(".population-circle")
+                .data(popuDataArray)
+                .enter()
+                .append("circle")
+                .attr("class", "population-circle")
+                .attr("cx", (d) => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+                .attr("cy", (d) => yScalePopulation(d.Population))
+                .attr("r", 3)
+                .attr("fill", "darkblue")
+                .on("mouseover", function (event, d) {
+                    d3.select(this).attr("r", 8);
+                    const tooltipHtml = getTooltipHtmlPopulation(d);
+                    d3.select(tooltipRef.current)
+                        .html(tooltipHtml)
+                        .style("visibility", "visible")
+                        .style("opacity", 0.9);
+                })
+                .on("mousemove", function (event) {
+                    const [x, y] = d3.pointer(event, this.parentNode);
+                    d3.select(tooltipRef.current)
+                        .style("top", (y + 10) + "px")
+                        .style("left", (x + 10) + "px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).attr("r", 3);
+                    d3.select(tooltipRef.current)
+                        .style("opacity", 0)
+                        .style("visibility", "hidden");
+                });
+
+        } else {
+            // Draw the temperature line using the dedicated temperature line generator.
+            svg.append("path")
+                .datum(tempDataArray)
+                .attr("class", "temperature-line")
+                .attr("fill", "none")
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("d", temperatureLineGenerator);
+
+            // Draw temperature circles with tooltips.
+            svg
+                .selectAll(".temperature-circle")
+                .data(tempDataArray)
+                .enter()
+                .append("circle")
+                .attr("class", "temperature-circle")
+                .attr("cx", (d) => xScale(String(d.Year)) + xScale.bandwidth() / 2)
+                .attr("cy", (d) => yScaleTemperature(d.Temper))
+                .attr("r", 3)
+                .attr("fill", "red")
+                .on("mouseover", function (event, d) {
+                    d3.select(this).attr("r", 8);
+                    const tooltipHtml = getTooltipHtmlTemperature(d);
+                    d3.select(tooltipRef.current)
+                        .html(tooltipHtml)
+                        .style("visibility", "visible")
+                        .style("opacity", 0.9);
+                })
+                .on("mousemove", function (event) {
+                    const [x, y] = d3.pointer(event, this.parentNode);
+                    d3.select(tooltipRef.current)
+                        .style("top", (y + 10) + "px")
+                        .style("left", (x + 10) + "px");
+                })
+                .on("mouseout", function () {
+                    d3.select(this).attr("r", 3);
+                    d3.select(tooltipRef.current)
+                        .style("opacity", 0)
+                        .style("visibility", "hidden");
+                });
+
+        }
 
         // Add a legend.
         const legendData = [];
         if (showUsage) legendData.push({ name: "Usage", color: "#3498db" });
-        if (showResource) legendData.push({ name: "Resource", color: "#2ecc71" });
-        legendData.push({ name: "Population", color: "darkblue" });
+        if (!showUsage) legendData.push({ name: "Resource", color: "#2ecc71" });
+        if (showPopulation) legendData.push({ name: "Population", color: "darkblue" });
+        if (!showPopulation) legendData.push({ name: "Temperature", color: "red" });
 
         const legend = svg
             .selectAll(".legend")
@@ -346,14 +464,13 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
             .attr("y", 10)
             .style("font-size", "12px")
             .text((d) => d.name);
-    }, [data, showUsage, showResource, minMaxYear]);
+    }, [data, showUsage, showPopulation, minMaxYear]);
 
-    // Redraw the chart when modal opens or dependencies change.
     useEffect(() => {
-        if (isOpen) {
+        if (data && data.waterData && data.popuData) {
             drawChart();
         }
-    }, [isOpen, drawChart]);
+    }, [drawChart]);
 
     // Redraw on window resize.
     useEffect(() => {
@@ -365,57 +482,61 @@ const LineChart = ({ data, title, isOpen, onClose }) => {
     const handleMinMaxYearChange = (range) => {
         setMinMaxYear(range);
     };
+
     return (
-        <Modal
-            isOpen={isOpen}
-            onAfterOpen={drawChart}
-            onRequestClose={onClose}
-            contentLabel="Line Chart Modal"
-            style={{
-                content: {
-                    top: "50%",
-                    left: "50%",
-                    marginRight: "-50%",
-                    transform: "translate(-50%, -50%)",
-                    background: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: "5px",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                    padding: "10px",
-                    width: "750px",
-                    height: "450px",
-                    overflow: "hidden",
-                },
-                overlay: {
-                    backgroundColor: "rgba(0, 0, 0, 0.75)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                },
-            }}
-        >
-            <div className="chart-container">
-                <button onClick={onClose} className="bar-chart-close-button">&times;</button>
-                {/* Dynamic Controls */}
+        <div id="line-chart" className="chart-container">
+            <div className="chart-description">
+                <h2>{title}</h2>
+                <EditableText
+                    initialText={description}
+                    className="chart-description-text"
+                    onChange={(newText) => setDescription(newText)}
+                    tag="div"
+                />
+            </div>
+            <div className="chart-figure">
                 <div className="chart-controls">
                     <div className="line-toggle-buttons">
                         <button
+                            title="Usage"
                             className={`water-type-btn ${showUsage ? "active" : ""}`}
-                            onClick={() => setShowUsage(!showUsage)}
-                        >U</button>
+                            onClick={() => setShowUsage(true)}
+                        >
+                            U
+                        </button>
                         <button
-                            className={`water-type-btn ${showResource ? "active" : ""}`}
-                            onClick={() => setShowResource(!showResource)}
-                        >R</button>
+                            title="Resource"
+                            className={`water-type-btn ${!showUsage ? "active" : ""}`}
+                            onClick={() => setShowUsage(false)}
+                        >
+                            R
+                        </button>
                     </div>
+                    <div className="line-toggle-buttons">
+                        <button
+                            title="Population"
+                            className={`temp-popu-type-btn ${showPopulation ? "active" : ""}`}
+                            onClick={() => setShowPopulation(true)}
+                        >
+                            P
+                        </button>
+                        <button
+                            title="Temperature"
+                            className={`temp-popu-type-btn ${!showPopulation ? "active" : ""}`}
+                            onClick={() => setShowPopulation(false)}
+                        >
+                            T
+                        </button>
+                    </div>
+
                 </div>
-                <svg ref={svgRef} className="chart-svg"></svg>
+                <svg ref={lineSvgRef} className="chart-svg"></svg>
                 <div ref={tooltipRef} className="chart-tooltip" />
                 <div className="double-slider-container">
                     <DoubleSlider min={1967} max={2021} onChange={handleMinMaxYearChange} />
                 </div>
             </div>
-        </Modal>
+        </div>
     );
 };
 

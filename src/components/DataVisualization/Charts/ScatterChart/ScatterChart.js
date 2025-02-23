@@ -1,12 +1,11 @@
 import React, { useRef, useEffect, useCallback, useState } from "react";
 import * as d3 from "d3";
-import Modal from "react-modal";
 import "./ScatterChart.css";
 import DoubleSlider from "../../../MicroComponents/DoubleSlider";
+import EditableText from "../../../MicroComponents/EditableText";
+import * as ss from "simple-statistics";
 
-Modal.setAppElement("#root");
-
-// A tooltip helper function for the scatter chart.
+// A tooltip helper function for population.
 const getScatterTooltipHtml = (d) => {
     return `
     <div class="tooltip-content">
@@ -17,28 +16,48 @@ const getScatterTooltipHtml = (d) => {
   `;
 };
 
-const ScatterChart = ({ data, title, isOpen, onClose }) => {
-    const svgRef = useRef();
-    const tooltipRef = useRef();
+// A tooltip helper function for temperature.
+const getScatterTooltipHtmlTemperature = (d) => {
+    return `
+    <div class="tooltip-content">
+      <strong>Year:</strong> ${d.Year}<br/>
+      <strong>Temperature:</strong> ${d.Temper}<br/>
+      <strong>Water Value:</strong> ${d.Value.toFixed(2)} ${d.Unit}
+    </div>
+  `;
+};
 
-    // We allow toggling water type (usage or resource) similar to the BarChart.
+const ScatterChart = ({ data }) => {
+    const scatterSvgRef = useRef();
+    const tooltipRef = useRef();
     const [waterType, setWaterType] = useState("usage");
     const [minMaxYear, setMinMaxYear] = useState([1967, 2021]);
+    const [showPopulation, setShowPopulation] = useState(true);
+    const [title, setTitle] = useState("Scatter Chart of Water Usage & Population");
+    const [description, setDescription] = useState(
+        `<p><strong>Overview:</strong> This scatter chart visualizes the relationship between <span style="color: #d38d00;">water usage</span> and <span style="color: #000066;">population growth</span> for DZA.</p>
+    
+    <p><strong>Insights:</strong></p>
+    <ul>
+        <li>Each <span style="color: #d38d00;">dot</span> represents a data point linking <strong>water consumption</strong> to <strong>population size</strong>.</li>
+        <li>Identifies patterns and potential anomalies in resource usage.</li>
+        <li>Provides a clear view of how population dynamics impact water demand.</li>
+    </ul>
+    
+    <p><strong>Application:</strong> Useful for environmental analysis, resource planning, and policy-making to ensure sustainable water management.</p>`
+    );
 
     const drawChart = useCallback(() => {
-        if (!svgRef.current || !data || !data.scatterData || !data.popuData) {
+        if (!scatterSvgRef.current || !data || !data.waterData || !data.popuData || !data.tempData) {
             console.error("Missing required data properties.");
             return;
         }
 
-        // Destructure the water and population data.
-        const { scatterData, popuData } = data;
-
-        console.log("Water Data for Scatter Chart:", scatterData);
-        console.log("Population Data for Scatter Chart:", popuData);
+        // Destructure the water, population and temperature data.
+        const { waterData, popuData, tempData } = data;
 
         // Filter water data by the selected water type and year range.
-        const filteredWaterData = scatterData
+        const filteredWaterData = waterData
             .filter(d => d.type === waterType)
             .filter(d => +d.Year >= minMaxYear[0] && +d.Year <= minMaxYear[1]);
 
@@ -48,36 +67,55 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
             .map(([year, value]) => ({ Year: +year, Population: +value }))
             .filter(d => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]);
 
-        // Merge water and population data by year.
-        // For each year in the population array, find a corresponding water measurement.
-        const mergedData = popArray.map(p => {
-            const waterItem = filteredWaterData.find(w => +w.Year === p.Year);
-            return waterItem
-                ? {
-                    Year: p.Year,
-                    Population: p.Population,
+        // Process temperature data.
+        const tempArray = Object.entries(tempData[0])
+            .filter(([key]) => !isNaN(key))
+            .map(([year, value]) => ({ Year: +year, Temper: +value }))
+            .filter(d => d.Year >= minMaxYear[0] && d.Year <= minMaxYear[1]);
+
+        // Choose the variable array based on the toggle.
+        const variableArray = showPopulation ? popArray : tempArray;
+
+        // Merge water and variable data by year.
+        const mergedData = variableArray.map(v => {
+            const waterItem = filteredWaterData.find(w => +w.Year === v.Year);
+            if (waterItem) {
+                return {
+                    Year: v.Year,
+                    // If showing population, use Population; otherwise, add property Temper.
+                    ...(showPopulation ? { Population: v.Population } : { Temper: v.Temper }),
                     Value: +waterItem.Value,
                     Unit: waterItem.Unit,
                     Variable: waterItem.Variable
-                }
-                : null;
+                };
+            }
+            return null;
         }).filter(d => d !== null);
 
         console.log("Merged Data for Scatter Chart:", mergedData);
 
-        // Get responsive dimensions from the container.
-        const container = svgRef.current.parentNode;
-        const containerWidth = container.clientWidth || 750;
-        const containerHeight = container.clientHeight || 450;
-        const margin = { top: 80, right: 60, bottom: 80, left: 60 };
-        const width = containerWidth - margin.left - margin.right;
-        const height = containerHeight - margin.top - margin.bottom;
+        // Get responsive dimensions.
+        if (!scatterSvgRef.current._dimensions) {
+            const containerElement = scatterSvgRef.current.parentNode;
+            const containerWidth = containerElement.clientWidth || 350;
+            const containerHeight = containerElement.clientHeight || 250;
+            const margin = { top: 60, right: 0, bottom: 40, left: 0 };
+            scatterSvgRef.current._dimensions = {
+                containerWidth,
+                containerHeight,
+                margin,
+                width: containerWidth - margin.left - margin.right,
+                height: containerHeight - margin.top - margin.bottom,
+            };
+        }
+        const { containerWidth, containerHeight, margin, width, height } = scatterSvgRef.current._dimensions;
 
-        // Clear any previous SVG content.
-        d3.select(svgRef.current).selectAll("*").remove();
+        // Clear any existing SVG content.
+        d3.select(scatterSvgRef.current).selectAll("*").remove();
 
         // Set up the responsive SVG.
-        const svg = d3.select(svgRef.current)
+        const svg = d3
+            .select(scatterSvgRef.current)
             .attr("width", "100%")
             .attr("height", "100%")
             .attr("viewBox", `0 0 ${containerWidth} ${containerHeight}`)
@@ -86,15 +124,18 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
             .attr("transform", `translate(${margin.left}, ${margin.top})`);
 
         // Create scales.
-        // xScale: population (linear scale).
+        // xScale: based on population or temperature.
+        const xDomain = showPopulation
+            ? [d3.min(variableArray, d => d.Population), d3.max(variableArray, d => d.Population)]
+            : d3.extent(tempArray, d => d.Temper);
         const xScale = d3.scaleLinear()
-            .domain([0, d3.max(mergedData, d => d.Population)])
+            .domain(xDomain)
             .range([0, width])
             .nice();
 
         // yScale: water value.
         const yScale = d3.scaleLinear()
-            .domain([0, d3.max(mergedData, d => d.Value)])
+            .domain([d3.min(mergedData, d => d.Value), d3.max(mergedData, d => d.Value)])
             .range([height, 0])
             .nice();
 
@@ -105,7 +146,7 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
             .attr("text-anchor", "middle")
             .style("font-size", "16px")
             .style("font-weight", "bold")
-            .text(`Water (${waterType}) vs Population for ${title}`);
+            .text(`Water (${waterType}) vs ${showPopulation ? "Population" : "Temperature"} for ${title}`);
 
         // Draw the x-axis.
         const xAxisG = svg.append("g")
@@ -127,24 +168,27 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
             .enter()
             .append("circle")
             .attr("class", "scatter-point")
-            .attr("cx", d => xScale(d.Population))
+            .attr("cx", d => showPopulation ? xScale(d.Population) : xScale(d.Temper))
             .attr("cy", d => yScale(d.Value))
             .attr("r", 6)
-            .attr("fill", "orange")
-            .attr("stroke", "#333")
+            .attr("fill", "blue")
+            .attr("stroke", "black")
             .attr("stroke-width", 0.5)
             .on("mouseover", function (event, d) {
                 d3.select(this).attr("r", 10);
-                const tooltipHTML = getScatterTooltipHtml(d);
+                const tooltipHTML = showPopulation
+                    ? getScatterTooltipHtml(d)
+                    : getScatterTooltipHtmlTemperature(d);
                 d3.select(tooltipRef.current)
                     .style("visibility", "visible")
                     .html(tooltipHTML)
                     .transition().duration(200).style("opacity", 0.9);
             })
             .on("mousemove", function (event) {
+                const [x, y] = d3.pointer(event, this.parentNode);
                 d3.select(tooltipRef.current)
-                    .style("top", (event.pageY - 80) + "px")
-                    .style("left", (event.pageX - 230) + "px");
+                    .style("top", (y + 10) + "px")
+                    .style("left", (x + 10) + "px");
             })
             .on("mouseout", function () {
                 d3.select(this).attr("r", 6);
@@ -154,36 +198,68 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
                     .on("end", () => d3.select(tooltipRef.current).style("visibility", "hidden"));
             });
 
-        // Optionally add a legend.
-        const legendData = [
-            { name: "Water Value", color: "orange" },
-            { name: "Population", color: "darkblue" }
-        ];
-        const legend = svg.selectAll(".legend")
-            .data(legendData)
-            .enter()
-            .append("g")
-            .attr("class", "legend")
-            .attr("transform", (_, i) => `translate(${width - 100}, ${i * 20})`);
-        legend.append("rect")
-            .attr("x", 0)
-            .attr("y", 0)
-            .attr("width", 12)
-            .attr("height", 12)
-            .style("fill", d => d.color);
-        legend.append("text")
-            .attr("x", 18)
-            .attr("y", 10)
-            .style("font-size", "12px")
-            .text(d => d.name);
-    }, [data, waterType, minMaxYear]);
+        // // Add a legend.
+        // const legendData = [
+        //     { name: "Water Value", color: "orange" },
+        //     { name: showPopulation ? "Population" : "Temperature", color: showPopulation ? "darkblue" : "red" }
+        // ];
+        // const legend = svg.selectAll(".legend")
+        //     .data(legendData)
+        //     .enter()
+        //     .append("g")
+        //     .attr("class", "legend")
+        //     .attr("transform", (_, i) => `translate(${width - 100}, ${i * 20})`);
+        // legend.append("rect")
+        //     .attr("x", 0)
+        //     .attr("y", 0)
+        //     .attr("width", 12)
+        //     .attr("height", 12)
+        //     .style("fill", d => d.color);
+        // legend.append("text")
+        //     .attr("x", 18)
+        //     .attr("y", 10)
+        //     .style("font-size", "12px")
+        //     .text(d => d.name);
 
-    // Redraw the chart when modal opens or dependencies change.
+        // Compute regression line data based on the scatter points.
+        const regressionData = mergedData.map(d => [
+            showPopulation ? d.Population : d.Temper,
+            d.Value
+        ]);
+
+        if (regressionData.length > 1) {
+            // Calculate linear regression parameters.
+            const regression = ss.linearRegression(regressionData);
+            const regressionLine = ss.linearRegressionLine(regression);
+
+            // Determine the domain for the regression line.
+            const xMin = d3.min(regressionData, d => d[0]);
+            const xMax = d3.max(regressionData, d => d[0]);
+
+            // Build the line data from the min and max x values.
+            const lineData = [
+                { x: xMin, y: regressionLine(xMin) },
+                { x: xMax, y: regressionLine(xMax) }
+            ];
+
+            // Draw the regression line.
+            svg.append("path")
+                .datum(lineData)
+                .attr("fill", "none")
+                .attr("stroke", "red")
+                .attr("stroke-width", 2)
+                .attr("d", d3.line()
+                    .x(d => xScale(d.x))
+                    .y(d => yScale(d.y))
+                );
+        }
+    }, [data, waterType, minMaxYear, showPopulation]);
+
     useEffect(() => {
-        if (isOpen) {
+        if (data && data.waterData && data.popuData && data.tempData) {
             drawChart();
         }
-    }, [isOpen, drawChart]);
+    }, [drawChart, data]);
 
     // Redraw on window resize.
     useEffect(() => {
@@ -197,39 +273,17 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
     };
 
     return (
-        <Modal
-            isOpen={isOpen}
-            onAfterOpen={drawChart}
-            onRequestClose={onClose}
-            contentLabel="Scatter Chart Modal"
-            style={{
-                content: {
-                    top: "50%",
-                    left: "50%",
-                    marginRight: "-50%",
-                    transform: "translate(-50%, -50%)",
-                    background: "#fff",
-                    border: "1px solid #ccc",
-                    borderRadius: "5px",
-                    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.2)",
-                    padding: "10px",
-                    width: "750px",
-                    height: "450px",
-                    overflow: "hidden",
-                },
-                overlay: {
-                    backgroundColor: "rgba(0, 0, 0, 0.75)",
-                    display: "flex",
-                    justifyContent: "center",
-                    alignItems: "center",
-                },
-            }}
-        >
-            <div className="bar-chart-container">
-                <button onClick={onClose} className="bar-chart-close-button">
-                    &times;
-                </button>
-                {/* Chart Controls */}
+        <div id="scatter-chart" className="chart-container">
+            <div className="chart-description">
+                <h2>{title}</h2>
+                <EditableText
+                    initialText={description}
+                    className="chart-description-text"
+                    onChange={(newText) => setDescription(newText)}
+                    tag="div"
+                />
+            </div>
+            <div className="chart-figure">
                 <div className="chart-controls">
                     <div className="water-type-switch">
                         <button
@@ -245,14 +299,31 @@ const ScatterChart = ({ data, title, isOpen, onClose }) => {
                             R
                         </button>
                     </div>
+                    {/* Population / Temperature toggle */}
+                    <div className="scatter-toggle-buttons">
+                        <button
+                            className={`temp-popu-type-btn ${showPopulation ? "active" : ""}`}
+                            onClick={() => setShowPopulation(true)}
+                            title="Population"
+                        >
+                            P
+                        </button>
+                        <button
+                            className={`temp-popu-type-btn ${!showPopulation ? "active" : ""}`}
+                            onClick={() => setShowPopulation(false)}
+                            title="Temperature"
+                        >
+                            T
+                        </button>
+                    </div>
                 </div>
-                <svg ref={svgRef} className="chart-svg"></svg>
+                <svg ref={scatterSvgRef} className="chart-svg"></svg>
                 <div ref={tooltipRef} className="chart-tooltip" />
                 <div className="double-slider-container">
                     <DoubleSlider min={1967} max={2021} onChange={handleMinMaxYearChange} />
                 </div>
             </div>
-        </Modal>
+        </div>
     );
 };
 

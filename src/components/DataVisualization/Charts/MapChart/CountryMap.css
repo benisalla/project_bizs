@@ -1,0 +1,38 @@
+.country-map-container {
+    position: relative;
+    margin: 20px auto;
+    max-width: 800px;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.country-map-tooltip {
+    position: absolute;
+    pointer-events: none;
+    padding: 8px 12px;
+    background-color: rgba(0, 0, 0, 0.75);
+    color: #fff;
+    border-radius: 4px;
+    font-size: 12px;
+    opacity: 0;
+    transform: translateY(-10px);
+    transition: opacity 0.2s ease-in-out, transform 0.2s ease-in-out;
+    white-space: nowrap;
+    z-index: 1000;
+}
+
+.country-map-container svg {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: hidden;
+}
+
+.map-title {
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 16px;
+}
