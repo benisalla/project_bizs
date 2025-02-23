@@ -164,23 +164,11 @@ const DataVisualization = () => {
         feature.properties.UnifiedName = country2CodeMapping[feature.properties.name];
       });
 
-      new_flatJson.features.forEach(feature => {
-        feature.properties.waterQTbyYear = countryWaterSum[feature.properties.UnifiedName] || 0;
-      });
-
-      new_roundJson.features.forEach(feature => {
-        feature.properties.waterQTbyYear = countryWaterSum[feature.properties.UnifiedName] || 0;
-      });
-
       setRoundGeoJson(() => new_roundJson);
       setFlatGeoJson(() => new_flatJson);
       setWaterData(() => waterCsv);
       setPopulationData(() => new_popu_data);
       setTemperatureData(() => filteredTempData);
-
-      console.log("Data loaded successfully");
-      console.log("temperatureData", filteredTempData);
-      console.log("populationData", new_popu_data);
 
       hideLoader();
     });

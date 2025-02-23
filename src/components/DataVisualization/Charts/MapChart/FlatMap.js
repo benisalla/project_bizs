@@ -40,7 +40,7 @@ const FlatMap = (
   const [zoomScale, setZoomScale] = useState(1);
 
   const width = 960;
-  const height = 600;
+  const height = 620;
 
   // ==============================================
   // Draw or Update the Map

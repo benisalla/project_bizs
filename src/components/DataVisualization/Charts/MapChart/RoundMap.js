@@ -9,7 +9,7 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
   const baseScaleRef = useRef(null);
   const [isMouseDown, setIsMouseDown] = useState(false);
   const [rotation, setRotation] = useState({ x: 0, y: 0 });
-  const [dimensions, setDimensions] = useState({ width: window.innerWidth, height: window.innerHeight });
+  const [dimensions, setDimensions] = useState({ width: null, height: null });
   const [zoomScale, setZoomScale] = useState(1);
 
   function getSimpleStatsTooltip(feature, waterData) {
@@ -109,8 +109,24 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
         .range(rangeColors)
         .interpolate(d3.interpolateRgb);
 
-      const width = dimensions.width;
-      const height = dimensions.height;
+      // if (dimensions.width === null || dimensions.height === null) {
+      //   setDimensions({ width: window.innerWidth, height: window.innerHeight });
+      // }
+
+      // const width = dimensions.width;
+      // const height = dimensions.height;
+
+
+      const svgElement = svgRef.current;
+      if (!svgElement._dimensions) {
+        const containerElement = svgElement.parentNode;
+        const containerWidth = containerElement.clientWidth || 960;
+        const containerHeight = containerElement.clientHeight || 620;
+        svgElement._dimensions = {
+          width: containerWidth, height: containerHeight
+        };
+      }
+      const { width, height } = svgElement._dimensions;
 
       const svg = d3.select(svgRef.current)
         .attr('width', width)
