@@ -8,6 +8,18 @@
       #d8e5fd 60px,
       #cedffe 60px,
       #cedffe 120px);
+  background-size: 120px 120px;
+  animation: wave 6s ease-in-out infinite alternate;
+}
+
+@keyframes wave {
+  0% {
+    background-position: 0 0;
+  }
+
+  100% {
+    background-position: 120px 120px;
+  }
 }
 
 .main-nav {
