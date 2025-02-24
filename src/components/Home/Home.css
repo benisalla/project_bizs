@@ -194,7 +194,7 @@ body {
     max-width: 48%;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    max-height: 300px;
+    max-height: 400px;
 }
 
 /* Styling for the module placeholder */
@@ -241,7 +241,7 @@ body {
     max-width: 48%;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    max-height: 400px;
+    max-height: 540px;
 }
 
 /* Optional: Prediction module placeholder styling */
@@ -289,7 +289,7 @@ body {
     max-width: 48%;
     border-radius: 8px;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    max-height: 400px;
+    max-height: 600px;
 }
 
 /* Responsive adjustments */
@@ -362,4 +362,36 @@ footer a:hover {
     .predictions h2 {
         font-size: 1.75rem;
     }
+}
+
+
+.home-container .fa {
+    font-size: 22px;
+    margin-right: 10px;
+    vertical-align: middle;
+    transition: transform 0.2s ease-in-out, color 0.2s ease-in-out;
+}
+
+.home-container .fa:hover {
+    transform: scale(1.1);
+}
+
+.home-container h2 .fa,
+.home-container h3 .fa {
+    font-size: 24px;
+    margin-bottom: 4px;
+}
+
+.project-description .fa,
+.page-resources .fa,
+.predictions .fa,
+.sheet-design .fa,
+.web-scraping .fa {
+    font-size: 22px;
+}
+
+.home-container .cta-button .fa,
+.home-container .data-link .fa {
+    font-size: 18px;
+    margin-right: 4px;
 }

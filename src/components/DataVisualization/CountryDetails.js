@@ -8,12 +8,11 @@ import LineChart from "./Charts/LineChart/LineChart";
 import BarChart from "./Charts/BarChart/BarChart";
 import ScatterChart from "./Charts/ScatterChart/ScatterChart";
 import AreaStats from "./Charts/AreaStats/AreaStats";
-// import TreeMapChart from "./Charts/TreeMapChart/TreeMapChart";
-import { ArrowBack } from "@mui/icons-material";
-import { PictureAsPdf } from "@mui/icons-material";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
-
+import Prediction from "./Charts/Prediction/Prediction";
+import ArrowBackIcon from '@mui/icons-material/ArrowBack';
+import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
 
 const CountryDetails = ({
   code2CountryMapping,
@@ -53,8 +52,7 @@ const CountryDetails = ({
     if (code2CountryMapping) {
       hideLoader();
     }
-  }
-    , [code2CountryMapping]);
+  }, [code2CountryMapping]);
 
   // Function to add one section to the PDF, splitting into multiple pages if needed.
   const addSectionToPdf = async (pdf, element) => {
@@ -77,7 +75,7 @@ const CountryDetails = ({
   };
 
   const handleDownloadPdf = async () => {
-    console.log("Generating PDF...");
+    showLoader();
     try {
       const pdf = new jsPDF("p", "mm", "a4");
       const sectionIds = [
@@ -101,21 +99,22 @@ const CountryDetails = ({
     } catch (error) {
       console.error("Error generating PDF:", error);
     }
+    hideLoader();
   };
 
 
   if (!isLoaded) {
-    return <p>Loading...</p>;
+    return <p></p>;
   }
   return (
     <div id="country-details-container" className="country-details-container">
       <section id="page-header" className="page-header">
         <div className="back-button-container">
           <button className="back-button" onClick={onBack}>
-            <ArrowBack style={{ fontSize: "24px", color: "white" }} />
+            <i className="fa fa-arrow-left" aria-hidden="true" style={{ fontSize: "24px", color: "white" }}></i>
           </button>
           <button className="pdf-button" onClick={handleDownloadPdf}>
-            <PictureAsPdf style={{ fontSize: "24px", color: "white" }} />
+            <i className="fa fa-file-pdf" aria-hidden="true" style={{ fontSize: "24px", color: "white" }}></i>
           </button>
         </div>
 
@@ -140,6 +139,7 @@ const CountryDetails = ({
           <p>No data found for the selected country.</p>
         ) : (
           <>
+            <h2 className="section-title">Bar Chart</h2>
             <LineChart
               title={`Line Chart of ${curr_country_code}`}
               data={filteredData}
@@ -147,6 +147,8 @@ const CountryDetails = ({
               height={400}
             />
 
+
+            <h2 className="section-title">Bar Chart</h2>
             <BarChart
               data={filteredData}
               title={`Bar Chart of ${curr_country_code}`}
@@ -154,6 +156,7 @@ const CountryDetails = ({
               height={400}
             />
 
+            <h2 className="section-title">Scatter Chart</h2>
             <ScatterChart
               title={`Scatter Chart of ${curr_country_code}`}
               data={filteredData}
@@ -165,6 +168,23 @@ const CountryDetails = ({
         )}
       </section>
 
+
+      {/* prediction section */}
+      <section id="prediction" className="prediction-section">
+        {(filteredData.waterData.length === 0 ||
+          filteredData.tempData.length === 0 ||
+          filteredData.popuData.length === 0) ? (
+          <p>No data found for the selected country.</p>
+        ) : (
+          <>
+            <h2 className="section-title">Prediction</h2>
+            <Prediction
+              data={filteredData}
+              countryName={code2CountryMapping[curr_country_code]}
+            />
+          </>
+        )}
+      </section>
 
       <section id="page-statistics" className="statistics-section">
         <AreaStats
