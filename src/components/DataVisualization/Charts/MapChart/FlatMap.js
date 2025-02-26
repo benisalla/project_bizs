@@ -222,8 +222,8 @@ const FlatMap = (
 
     const legendWidth = 10;
     const legendHeight = 250;
-    const legendX = width + 50;
-    const legendY = 100;
+    const legendX = width - 60;
+    const legendY = 130;
 
     const legend = svg.append("g")
       .attr("class", "legend")
