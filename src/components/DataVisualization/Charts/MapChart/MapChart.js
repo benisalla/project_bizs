@@ -1,9 +1,12 @@
-import React, { useState, useEffect, use } from 'react';
+import React, { useState, useEffect } from 'react';
 import FlatMap from './FlatMap';
 import RoundMap from './RoundMap';
 import './MapChart.css';
 import { useLoader } from '../../../APIs/Reducer';
 import GlobalStats from '../GlobalStats/GlobalStats';
+
+const flat_map_icon = process.env.PUBLIC_URL + "/assets/images/flat-map-icon.png";
+const earth_map_icon = process.env.PUBLIC_URL + "/assets/images/earth-map-icon.png";
 
 const MapChart = ({
     onCountryClick,
@@ -21,7 +24,7 @@ const MapChart = ({
     const [filteredTempData, setFilteredTempData] = useState([]);
 
     useEffect(() => {
-        setFilteredWaterData(waterData.filter(d => d.Year == selectedYear));
+        setFilteredWaterData(waterData.filter(d => d.Year === selectedYear));
         setFilteredPopuData(
             Object.entries(populationData).map(([UnifiedName, data]) => ({
                 UnifiedName,
@@ -60,10 +63,10 @@ const MapChart = ({
                     aria-label={flatMap ? 'Switch to round map' : 'Switch to flat map'}
                 >
                     {!flatMap ? (
-                        <img src="/assets/images/flat-map-icon.png" alt="flat map icon" className="chart-icon"
+                        <img src={flat_map_icon} alt="flat map icon" className="chart-icon"
                         />
                     ) : (
-                        <img src="/assets/images/earth-map-icon.png" alt="earth icon" className="chart-icon chart-icon-round"
+                        <img src={earth_map_icon} alt="earth icon" className="chart-icon chart-icon-round"
                         />
                     )}
                 </button>
