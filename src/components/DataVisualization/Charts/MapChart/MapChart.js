@@ -24,25 +24,27 @@ const MapChart = ({
     const [filteredTempData, setFilteredTempData] = useState([]);
 
     useEffect(() => {
-        setFilteredWaterData(waterData.filter(d => d.Year === selectedYear));
-        setFilteredPopuData(
-            Object.entries(populationData).map(([UnifiedName, data]) => ({
-                UnifiedName,
-                value: data[selectedYear],
-            }))
-        );
+        const sampleWater = waterData.find(d => d.Year === selectedYear);        
+        const filteredWater = waterData.filter(d => d.Year === selectedYear);
+        setFilteredWaterData(filteredWater);
+            
+        const filteredPopu = Object.entries(populationData).map(([UnifiedName, data]) => ({
+            UnifiedName,
+            value: data[selectedYear],
+        })).filter(item => item.value !== undefined); // Add filter for undefined values
+        
+        setFilteredPopuData(filteredPopu);            
+        const filteredTemp = Object.entries(temperatureData).map(([UnifiedName, data]) => ({
+            UnifiedName,
+            value: data[selectedYear],
+        })).filter(item => item.value !== undefined); // Add filter for undefined values
+        
+        setFilteredTempData(filteredTemp);
 
-        setFilteredTempData(
-            Object.entries(temperatureData).map(([UnifiedName, data]) => ({
-                UnifiedName,
-                value: data[selectedYear],
-            }))
-        );
-
-    }, [selectedYear]);
+    }, [selectedYear, waterData, populationData, temperatureData]);
 
     const handleYearSelection = (e) => {
-        setSelectedYear(e.target.value);
+        setSelectedYear(parseInt(e.target.value));
     };
 
     const handleSwitch = () => {

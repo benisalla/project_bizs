@@ -3,7 +3,10 @@ import * as d3 from 'd3';
 import './RoundMap.css';
 
 
-const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
+const RoundMap = ({ 
+  roundGeoJson, 
+  waterData, 
+  onCountryClick }) => {
   const svgRef = useRef();
   const tooltipRef = useRef();
   const baseScaleRef = useRef(null);
@@ -253,7 +256,7 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
       updateGlobe(svg, path, graticule, projection);
 
       // draw legend
-      drawLegend(svg, dimensions.width, colorScale, minTotal, maxTotal);
+      drawLegend(svg, colorScale, minTotal, maxTotal);
 
       // clean up
       return () => {
@@ -270,11 +273,12 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
     rotation,
     dimensions,
     zoomScale,
-    updateGlobe
+    updateGlobe,
+    waterData,
   ]);
 
 
-  function drawLegend(svg, width, colorScale, minTotal, maxTotal) {
+  function drawLegend(svg, colorScale, minTotal, maxTotal) {
     // Remove any old legend
     svg.select(".legend").remove();
 
