@@ -109,14 +109,6 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
         .range(rangeColors)
         .interpolate(d3.interpolateRgb);
 
-      // if (dimensions.width === null || dimensions.height === null) {
-      //   setDimensions({ width: window.innerWidth, height: window.innerHeight });
-      // }
-
-      // const width = dimensions.width;
-      // const height = dimensions.height;
-
-
       const svgElement = svgRef.current;
       if (!svgElement._dimensions) {
         const containerElement = svgElement.parentNode;
@@ -261,7 +253,7 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
       updateGlobe(svg, path, graticule, projection);
 
       // draw legend
-      drawLegend(svg, colorScale, minTotal, maxTotal);
+      drawLegend(svg, dimensions.width, colorScale, minTotal, maxTotal);
 
       // clean up
       return () => {
@@ -282,14 +274,14 @@ const RoundMap = ({ roundGeoJson, waterData, onCountryClick }) => {
   ]);
 
 
-  function drawLegend(svg, colorScale, minTotal, maxTotal) {
+  function drawLegend(svg, width, colorScale, minTotal, maxTotal) {
     // Remove any old legend
     svg.select(".legend").remove();
 
     const legendWidth = 10;
     const legendHeight = 250;
-    const legendX = dimensions.width - 70;
-    const legendY = 100;
+    const legendX = 60;
+    const legendY = 150;
 
     const legend = svg.append("g")
       .attr("class", "legend")
