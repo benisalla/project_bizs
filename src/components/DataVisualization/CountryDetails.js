@@ -11,8 +11,7 @@ import AreaStats from "./Charts/AreaStats/AreaStats";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 import Prediction from "./Charts/Prediction/Prediction";
-import ArrowBackIcon from '@mui/icons-material/ArrowBack';
-import PictureAsPdfIcon from '@mui/icons-material/PictureAsPdf';
+
 
 const CountryDetails = ({
   code2CountryMapping,
@@ -31,7 +30,7 @@ const CountryDetails = ({
     showLoader();
     const countryName = code2CountryMapping[curr_country_code];
     if (countryName) {
-      d3.json(`/assets/dataset/countries/${curr_country_code}.json`).then((geoJsonData) => {
+      d3.json(`${process.env.PUBLIC_URL}/assets/dataset/countries/${curr_country_code}.json`).then((geoJsonData) => {
         setCountryGeoJson(geoJsonData);
         setIsLoaded(true);
       });
